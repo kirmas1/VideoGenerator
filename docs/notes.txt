@@ -1,0 +1,43 @@
+
+How to create the video ?
+
+The input will be:
+1. Images
+2. Texts to be written above images. 
+
+Output:
+Slideshow video from the input images, and text that will be typed on those images.
+
+
+Proccess:
+1. Create video from each images and text. a video that show the image and the text typed on it.
+
+1.1 In order to acheive that we will display the image in the browser, and upon it will type the text using typed.js.
+1.2 Record the screen using screen-capture-recorder and ffmpeg. (need to configure capturing only the relevant part of the screen) 
+2. Once set of videos from step 1 are ready, combine them into one video using ffmpeg.
+3. Video is ready.
+
+
+Documentation:
+
+https://github.com/rdp/screen-capture-recorder-to-video-windows-free
+
+https://ffmpeg.org/ffmpeg.html
+
+https://github.com/mattboldt/typed.js/
+
+
+typed.js investigation:
+
+typeSpeed: 100
+Measured:
+50 chars ~ 7.5 seconds
+1 char ~ 7.5/50 sec = 0.15 seconds.
+
+From code: 0.1 - 0.17 seconds.
+
+The code calc is: Math.round(Math.random() * (100 - 30)) + this.typeSpeed;
+
+
+
+ 

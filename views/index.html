@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>File Uploader - KRM Software</title>
+    <link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+    <link href="css/styles.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+    <script type="text/javascript" src="javascripts/typed.js"></script>
+    <script src="//code.angularjs.org/1.6.0-rc.2/angular.min.js"></script>
+    <!--    <script src="//code.angularjs.org/1.6.0-rc.2/angular-route.min.js"></script>-->
+    <script type="text/javascript" src="javascripts/angular-ui-router.js"></script>
+    <script src="//code.angularjs.org/1.6.0-rc.2/angular-resource.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+    <script type="text/javascript" src="javascripts/app.js"></script>
+</head>
+
+<body>
+    <div class="page-header">
+        <h1>Video Content maker <small>Start creating custom videos</small></h1>
+        <nav class="navbar navbar-default">
+            <div class="container-fluid">
+                <ul class="nav navbar-nav">
+                    <li><a ui-sref="home">FakeVideo</a></li>
+                    <li><a ui-sref="realvideo">RealVideo</a></li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+    <div class="container">
+
+        <ui-view></ui-view>
+    </div>
+</body>
+
+</html>
