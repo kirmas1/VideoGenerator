@@ -79,58 +79,57 @@ app.post('/test', function (req, res) {
             });
         })
 
-        var scaleAndPadPromise = function () {
+        var scalePromise = function () {
             return new Promise((resolvee, reject) => {
-                var scale_and_pad_requests = data.map(function (ele, index) {
+                var scale_requests = data.map(function (ele, index) {
                     return new Promise(function (resolve) {
-                        if (ele.scale > 1) {
-                            let scale = ele.width / ele.scale + ':' + ele.height / ele.scale;
-                            let filter = 'scale=' + scale + ', pad=1280:720:(ow-iw)/2:(oh-ih)/2';
-                            let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
-                                if (error) {
-                                    throw error;
-                                }
-                                ele.fileName = index + ele.fileName;
-                                resolve(0);
-                            });
-                        } else if (ele.width < 1280 || ele.height < 720) {
-                            if (ele.dimesions == 1) {
-                                let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', 'scale=1280:720', '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
-                                    if (error) {
-                                        throw error;
-                                    }
-                                    ele.fileName = index + ele.fileName;
-                                    resolve(0);
-                                });
-                            } else {
-                                let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', 'pad=1280:720:(ow-iw)/2:(oh-ih)/2', '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
-                                    if (error) {
-                                        throw error;
-                                    }
-                                    ele.fileName = index + ele.fileName;
-                                    resolve(0);
-                                });
-                            }
 
-                        } else resolve(0);
+                        let filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
+                        let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
+                            if (error) {
+                                throw error;
+                            }
+                            ele.fileName = index + ele.fileName;
+                            resolve(0);
+                        });
                     });
                 })
 
-                Promise.all(scale_and_pad_requests).then(() => {
+                Promise.all(scale_requests).then(() => {
                     resolvee(0);
                 });
             })
         }
 
+        var padPromise = function () {
 
+            return new Promise((resolvee, reject) => {
+                var pad_requests = data.map(function (ele, index) {
+                    return new Promise(function (resolve) {
+
+                        let filter = 'pad=1280:720:(ow-iw)/2:(oh-ih)/2';
+                        let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
+                            if (error) {
+                                throw error;
+                            }
+                            ele.fileName = index + ele.fileName;
+                            resolve(0);
+                        });
+                    });
+                })
+
+                Promise.all(pad_requests).then(() => {
+                    resolvee(0);
+                });
+            })
+        }
 
         var createTwoSecClipsRequstPromise = function () {
             return new Promise((resolvee, reject) => {
                 var a = data.map((ele) => {
                     return new Promise((resolve, reject) => {
 
-                        console.log('perfect match');
-                        exec("ffmpeg -loop 1 -i \workshop\\" + newFolderName + "\\" + ele.fileName + " -vf format=yuv420p -t 2 " + "\workshop\\" + newFolderName + "\\" + "twosec_" + ele.fileName.substr(0, ele.fileName.lastIndexOf('.')) + ".mp4", (err, stdout, stderr) => {
+                        exec("ffmpeg -loop 1 -i \workshop\\" + newFolderName + "\\" + ele.fileName + " -vf \"format=yuv420p,setsar=1:1\" -t 2 " + "\workshop\\" + newFolderName + "\\" + "twosec_" + ele.fileName.substr(0, ele.fileName.lastIndexOf('.')) + ".mp4", (err, stdout, stderr) => {
                             if (err) {
                                 console.log(err);
                             }
@@ -323,6 +322,7 @@ app.post('/test', function (req, res) {
                 readable.pipe(fs.createWriteStream("\public\\videos\\final_" + newFolderName + ".mp4"));
             })
         }
+        
         Promise.all(add_dimesions_requests).then(() => {
             if (nine_sixteen >= three_four) {
                 chosen_dimesions_for_clip.r = 1;
@@ -333,30 +333,33 @@ app.post('/test', function (req, res) {
                 chosen_dimesions_for_clip.w = 960;
                 chosen_dimesions_for_clip.h = 720;
             }
-            return scaleAndPadPromise();
+            return scalePromise();
         }).then(() => {
-            console.log('aaa');
+            console.log('Done Scaling');
+            return padPromise();
+        }).then(() => {
+            console.log('Done Padding');
             return createTwoSecClipsRequstPromise();
         }).then(() => {
-            console.log('aaa');
+            console.log('Done create 2 sec clips');
             return createFullTextClipsPromise();
         }).then(() => {
-            console.log('bbb');
+            console.log('Done creating full text 2 sec clips');
             return createTransitionsPromise();
         }).then(() => {
-            console.log('ccc');
+            console.log('Done creating transition clips');
             return createTypingTextClipsPromise();
         }).then(() => {
-            console.log('ddd');
+            console.log('Done with typing clips');
             return writeConcatTextFilePromise();
         }).then(() => {
-            console.log('eee');
+            console.log('Done writing the concat file');
             return concatAllPromise();
         }).then(() => {
-            console.log('fff');
+            console.log('Done concat the files');
             moveFinalFileToPublic();
         }).then(() => {
-            console.log('ggg');
+            console.log('File moved to public');
             res.end('final_' + newFolderName + '.mp4');
         })
 
