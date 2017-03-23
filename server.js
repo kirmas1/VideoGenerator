@@ -9,6 +9,7 @@ var formidable = require('formidable');
 var shortid = require('shortid');
 var sizeOf = require('image-size');
 const execFile = require('child_process').execFile;
+const ffmpeg = require('./ffmpeg');
 var os = require("os");
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -53,149 +54,65 @@ app.post('/test', function (req, res) {
         //start process the files
         console.log("end uploading");
 
-        var three_four = 0,
-            nine_sixteen = 0;
-        var chosen_dimesions_for_clip = {}; // 0 = three_four, 1 = nine_sixteen
-
-        var add_dimesions_requests = data.map(function (ele) {
-            return new Promise(function (resolve) {
-                sizeOf(form.uploadDir + '/' + ele.fileName, function (err, dimensions) {
-                    if (err) throw err;
-                    ele.width = dimensions.width;
-                    ele.height = dimensions.height;
-                    if (dimensions.width / 4 == dimensions.height / 3) {
-                        three_four++;
-                        ele.dimesions = 0;
-                    } else if (dimensions.width / 16 == dimensions.height / 9) {
-                        nine_sixteen++;
-                        ele.dimesions = 1;
-                    } else {
-                        ele.dimesions = -1;
-                    }
-                    // scale to 1280x720
-                    ele.scale = Math.max(Math.ceil(ele.width / 1280), Math.ceil(ele.height / 720));
-                    resolve(0);
-                })
-            });
-        })
-
         var scalePromise = function () {
-            return new Promise((resolvee, reject) => {
-                var scale_requests = data.map(function (ele, index) {
-                    return new Promise(function (resolve) {
+            var scale_requests = data.map(function (ele, index) {
+                return new Promise(function (resolve) {
 
-                        let filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
-                        let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
-                            if (error) {
-                                throw error;
-                            }
-                            ele.fileName = index + ele.fileName;
-                            resolve(0);
-                        });
+                    let filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
+                    let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
+                        if (error) {
+                            throw error;
+                        }
+                        ele.fileName = index + ele.fileName;
+                        resolve(0);
                     });
-                })
-
-                Promise.all(scale_requests).then(() => {
-                    resolvee(0);
                 });
-            })
+            });
+            return Promise.all(scale_requests);
         }
 
         var padPromise = function () {
-
-            return new Promise((resolvee, reject) => {
-                var pad_requests = data.map(function (ele, index) {
-                    return new Promise(function (resolve) {
-
-                        let filter = 'pad=1280:720:(ow-iw)/2:(oh-ih)/2';
-                        let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
-                            if (error) {
-                                throw error;
-                            }
-                            ele.fileName = index + ele.fileName;
-                            resolve(0);
-                        });
+            var pad_requests = data.map(function (ele, index) {
+                return new Promise(function (resolve) {
+                    let filter = 'pad=1280:720:(ow-iw)/2:(oh-ih)/2';
+                    let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\' + index + ele.fileName], (error, stdout, stderr) => {
+                        if (error) {
+                            throw error;
+                        }
+                        ele.fileName = index + ele.fileName;
+                        resolve(0);
                     });
-                })
-
-                Promise.all(pad_requests).then(() => {
-                    resolvee(0);
                 });
             })
+            return Promise.all(pad_requests);
         }
 
         var createTwoSecClipsRequstPromise = function () {
-            return new Promise((resolvee, reject) => {
-                var a = data.map((ele) => {
-                    return new Promise((resolve, reject) => {
+            var a = data.map((ele) => {
+                return ffmpeg.createVideoFromImage(`\workshop\\${newFolderName}\\${ele.fileName}`, 2, `\workshop\\${newFolderName}\\twosec_${ele.fileName.substr(0, ele.fileName.lastIndexOf('.'))}.mp4`);
+            });
+            return Promise.all(a);
+        }
 
-                        exec("ffmpeg -loop 1 -i \workshop\\" + newFolderName + "\\" + ele.fileName + " -vf \"format=yuv420p,setsar=1:1\" -t 2 " + "\workshop\\" + newFolderName + "\\" + "twosec_" + ele.fileName.substr(0, ele.fileName.lastIndexOf('.')) + ".mp4", (err, stdout, stderr) => {
-                            if (err) {
-                                console.log(err);
-                            }
-                            console.log(stdout);
-
-                        }).on('exit', (code, signal) => {
-                            console.log('---------createTwoSecClipsRequstPromise-- ' + 'exit with code: ' + code + '----------------------');
-                            resolve(0);
-                        });
-                        //                        if (ele.width == chosen_dimesions_for_clip.w && ele.height == chosen_dimesions_for_clip.h) {
-                        //                            //perfect match
-                        //                            console.log('perfect match');
-                        //                            exec("ffmpeg -loop 1 -i \workshop\\" + newFolderName + "\\" + ele.fileName + " -vf format=yuv420p -t 2 " + "\workshop\\" + newFolderName + "\\" + "twosec_" + ele.fileName.substr(0, ele.fileName.lastIndexOf('.')) + ".mp4", (err, stdout, stderr) => {
-                        //                                if (err) {
-                        //                                    console.log(err);
-                        //                                }
-                        //                                console.log(stdout);
-                        //
-                        //                            }).on('exit', (code, signal) => {
-                        //                                console.log('---------createTwoSecClipsRequstPromise-- ' + 'exit with code: ' + code + '----------------------');
-                        //                                resolve(0);
-                        //                            });
-                        //                        } else if (ele.width > chosen_dimesions_for_clip.w) {
-                        //                            //scale down and pad
-                        //                            console.log('scale down and pad: ' + 'ele.w: ' + ele.width + ' ele.h: ' + ele.height);
-                        //                        } else {
-                        //                            //pad
-                        //                            console.log('pad: ' + 'ele.w: ' + ele.width + ' ele.h: ' + ele.height);
-                        //                        }
-                        //                        //resolve('yay');
-                    })
-                });
-
-                Promise.all(a).then(() => {
-                    resolvee(0);
-
-                });
-            })
+        var createTwoSecZoomedClipsRequstPromise = function () {
+            var a = data.map((ele) => {
+                return ffmpeg.createVideoFromImage(`\workshop\\${newFolderName}\\zoomvideolastframe_${ele.fileName}`, 2, `\workshop\\${newFolderName}\\twoseczoomed_${ele.fileName.substr(0, ele.fileName.lastIndexOf('.'))}.mp4`);
+            });
+            return Promise.all(a);
         }
 
         var createTransitionsPromise = function () {
+            var c = data.map((ele, index, data) => {
+                if (index == data.length - 1)
+                    return Promise.resolve('yay');
+                else {
+                    console.log('blending...');
+                    return ffmpeg.createBlend(`\workshop\\${newFolderName}\\twoseczoomed_${ele.fileName.substr(0, ele.fileName.lastIndexOf('.'))}.mp4`,
+                        `\workshop\\${newFolderName}\\twosec_${data[index + 1].fileName.substr(0, data[index + 1].fileName.lastIndexOf('.'))}.mp4`, 2, `\workshop\\${newFolderName}\\blend_${index}.mp4`);
+                }
+            });
 
-            return new Promise((resolvee, reject) => {
-
-                var c = data.map((ele, index, data) => {
-                    return new Promise((resolve, reject) => {
-                        if (index == data.length - 1) {
-                            resolve('yay');
-                        } else {
-                            exec("ffmpeg -i \workshop\\" + newFolderName + "\\twosec_" + data[index + 1].fileName.substr(0, data[index + 1].fileName.lastIndexOf('.')) +
-                                ".mp4 " + "-i \workshop\\" + newFolderName + "\\fulltext_" + data[index].fileName.substr(0, data[index].fileName.lastIndexOf('.')) + ".mp4 -filter_complex blend=all_expr='A*(if(gte(T,2),1,T/2))+B*(1-(if(gte(T,2),1,T/2)))' \workshop\\" + newFolderName + "\\blend_" + index + ".mp4", (err, stdout, stderr) => {
-                                    if (err) {
-                                        console.log(err);
-                                    }
-                                    console.log(stdout);
-
-                                }).on('exit', (code, signal) => {
-                                console.log('-----------createTransitionsPromise ' + 'exit with code: ' + code + '----------------------');
-                                resolve(0);
-                            });
-                        }
-                    });
-                });
-
-                Promise.all(c).then(resolvee(0));
-            })
+            return Promise.all(c);
         }
 
         var createDrawString = function (str, duration) {
@@ -214,29 +131,40 @@ app.post('/test', function (req, res) {
         }
 
         var createTypingTextClipsPromise = function () {
-            return new Promise((resolvee, reject) => {
-                var d = data.map((ele, index, data) => {
-                    return new Promise((resolve, reject) => {
-                        var duration = Math.ceil(ele.caption.length * 0.15 + 2);
-                        exec('ffmpeg -loop 1 -i \workshop\\' + newFolderName + '\\' + ele.fileName + ' -vf "' + createDrawString(ele.caption, duration) + ',format=yuv420p' + '" ' + '-t ' + duration + " \workshop\\" + newFolderName + "\\" + 'typed_' + index + '.mp4', (err, stdout, stderr) => {
-                            if (err) {
-                                console.log(err);
-                            }
-                            console.log(stdout);
+            var d = data.map((ele, index, data) => {
+                return new Promise((resolve, reject) => {
+                    var duration = Math.ceil(ele.caption.length * 0.15 + 2);
+                    exec('ffmpeg -loop 1 -i \workshop\\' + newFolderName + '\\' + ele.fileName + ' -vf "' + createDrawString(ele.caption, duration) + ',format=yuv420p' + '" ' + '-t ' + duration + " \workshop\\" + newFolderName + "\\" + 'typed_' + index + '.mp4', (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err);
+                        }
+                        console.log(stdout);
 
-                        }).on('exit', (code, signal) => {
-                            console.log('-----------createTypingTextClipsPromise exit with code: ' + code + '----------------------');
-                            resolve(0);
-                        });
+                    }).on('exit', (code, signal) => {
+                        console.log('-----------createTypingTextClipsPromise exit with code: ' + code + '----------------------');
+                        resolve(0);
+                    });
 
-                    })
-                });
-                Promise.all(d).then(() => {
-                    resolvee(0)
-                });
-            })
+                })
+            });
+            return Promise.all(d);
         }
 
+        var createZoomInEffectRequstPromise = function () {
+            var d = data.map((ele, index, data) => {
+                return ffmpeg.createZoomInEffectVideo(`\workshop\\${newFolderName}\\${ele.fileName}`, 1280, 720, 3, `\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
+            });
+            return Promise.all(d);
+        }
+
+        var captureLastFrameRequstPromise = function () {
+            var d = data.map((ele, index, data) => {
+                return ffmpeg.captureLastFrame(`\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, 3, `\workshop\\${newFolderName}\\zoomvideolastframe_${ele.fileName}`);
+            });
+            return Promise.all(d);
+        }
+
+        //Deprecated!
         var createFullTextClipsPromise = function () {
             return new Promise((resolvee, reject) => {
                 var b = data.map((ele, index, data) => {
@@ -249,7 +177,7 @@ app.post('/test', function (req, res) {
 
                                 function frame() {
                                     console.log("interval: " + Date.now());
-                                    if (fs.existsSync('./workshop/' + newFolderName + "/twosec_" + ele.fileName.substr(0, ele.fileName.lastIndexOf('.')) + ".mp4")) {
+                                    if (fs.existsSync(`\workshop\\${newFolderName}\\twosec_${ele.fileName.substr(0, ele.fileName.lastIndexOf('.'))}.mp4`)) {
                                         clearInterval(id);
                                         exec("ffmpeg -i \workshop\\" + newFolderName + "\\" + "twosec_" + ele.fileName.substr(0, ele.fileName.lastIndexOf('.')) + ".mp4" + " -vf \"drawtext=fontsize=35:fontfile=workshop/OpenSans-Regular.ttf:text=" + "'" + ele.caption + "'" + ":x=100:y=(h-3*text_h),format=yuv420p\" " + "\workshop\\" + newFolderName + "\\" + "fulltext_" + ele.fileName.substr(0, ele.fileName.lastIndexOf('.')) + ".mp4", (err, stdout, stderr) => {
                                             if (err) {
@@ -274,21 +202,21 @@ app.post('/test', function (req, res) {
         }
 
         var writeConcatTextFilePromise = function () {
-            return new Promise((resolve, reject) => {
-                var file_content = '';
-                for (var i = 0; i < data.length; i++) {
-                    if (i == data.length - 1) {
-                        file_content += "file " + "'\workshop\\" + newFolderName + "\\typed_" + i + ".mp4'";
-                    } else {
-                        file_content += "file " + "'\workshop\\" + newFolderName + "\\typed_" + i + ".mp4'" + os.EOL + "file " + "'\workshop\\" + newFolderName + "\\blend_" + i + ".mp4'" + os.EOL;
+                return new Promise((resolve, reject) => {
+                    var file_content = '';
+                    for (var i = 0; i < data.length; i++) {
+                        if (i == data.length - 1) {
+                            file_content += "file " + "'\workshop\\" + newFolderName + "\\zoomeffect_" + i + ".mp4'";
+                        } else {
+                            file_content += "file " + "'\workshop\\" + newFolderName + "\\zoomeffect_" + i + ".mp4'" + os.EOL + "file " + "'\workshop\\" + newFolderName + "\\blend_" + i + ".mp4'" + os.EOL;
+                        }
                     }
-                }
-                fs.writeFile('./workshop/' + newFolderName + '/files_to_concat.txt', file_content, (err) => {
-                    console.log('finish writing txt file');
-                    resolve(0);
-                })
-            });
-        }
+                    fs.writeFile(`./workshop/${newFolderName}/files_to_concat.txt`, file_content, (err) => {
+                        console.log('finish writing txt file');
+                        resolve(0);
+                    })
+                });
+            }
 
         var concatAllPromise = function () {
             return new Promise((resolve, reject) => {
@@ -299,17 +227,10 @@ app.post('/test', function (req, res) {
                         }
                         resolve(0);
                     });
+
                 }, 2000);
 
-                //                exec("ffmpeg -f concat -safe 0 -i workshop\\" + newFolderName + "\\files_to_concat.txt -c copy workshop\\" + newFolderName + "\\final_" + newFolderName + ".mp4", (err, stdout, stderr) => {
-                //                    if (err) {
-                //                        console.log(err);
-                //                    }
-                //                    console.log(stdout);
-                //
-                //                }).on('exit', (code, signal) => {
-                //                    resolve(0);
-                //                })
+
             });
         }
 
@@ -322,49 +243,40 @@ app.post('/test', function (req, res) {
                 readable.pipe(fs.createWriteStream("\public\\videos\\final_" + newFolderName + ".mp4"));
             })
         }
-        
-        Promise.all(add_dimesions_requests).then(() => {
-            if (nine_sixteen >= three_four) {
-                chosen_dimesions_for_clip.r = 1;
-                chosen_dimesions_for_clip.w = 1280;
-                chosen_dimesions_for_clip.h = 720;
-            } else {
-                chosen_dimesions_for_clip.r = 0;
-                chosen_dimesions_for_clip.w = 960;
-                chosen_dimesions_for_clip.h = 720;
-            }
-            return scalePromise();
-        }).then(() => {
-            console.log('Done Scaling');
-            return padPromise();
-        }).then(() => {
-            console.log('Done Padding');
-            return createTwoSecClipsRequstPromise();
-        }).then(() => {
-            console.log('Done create 2 sec clips');
-            return createFullTextClipsPromise();
-        }).then(() => {
-            console.log('Done creating full text 2 sec clips');
-            return createTransitionsPromise();
-        }).then(() => {
-            console.log('Done creating transition clips');
-            return createTypingTextClipsPromise();
-        }).then(() => {
-            console.log('Done with typing clips');
-            return writeConcatTextFilePromise();
-        }).then(() => {
-            console.log('Done writing the concat file');
-            return concatAllPromise();
-        }).then(() => {
-            console.log('Done concat the files');
-            moveFinalFileToPublic();
-        }).then(() => {
-            console.log('File moved to public');
-            res.end('final_' + newFolderName + '.mp4');
-        })
 
+        scalePromise()
+            .then(() => {
+                console.log('Done Scaling');
+                return padPromise();
+            }).then(() => {
+                console.log('Done Padding');
+                return createTwoSecClipsRequstPromise();
+            }).then(() => {
+                console.log('Done create 2 sec clips');
+                return createZoomInEffectRequstPromise();
+            }).then(() => {
+                console.log('Done createZoomInEffect clips');
+                return captureLastFrameRequstPromise();
+            }).then(() => {
+                console.log('Done caputring last frame');
+                return createTwoSecZoomedClipsRequstPromise();
+            }).then(() => {
+                console.log('Done creating zoomed in 2 sec clips');
+                return createTransitionsPromise();
+            }).then(() => {
+                console.log('Done with Transitions clips');
+                return writeConcatTextFilePromise();
+            }).then(() => {
+                console.log('Done writing the concat file');
+                return concatAllPromise();
+            }).then(() => {
+                console.log('Done concat the files');
+                moveFinalFileToPublic();
+            }).then(() => {
+                console.log('File moved to public');
+                res.end('final_' + newFolderName + '.mp4');
+            })
     });
-
 })
 
 
@@ -379,18 +291,6 @@ app.post('/generate', function (req, res, next) {
     function (req, res) {
         res.end("/uploads/" + req.id);
     })
-
-
-//    exec("ffmpeg -loop 1 -i \workshop\\img1.jpg -vf format=yuv420p -t 2 \workshop\\video.mp4", function(error, stdout, stderr) {
-//        if (error) {
-//            console.error("exec error is:" +  error);
-//            return;
-//        }
-//        //fs.createReadStream('\workshop\\video.mp4').pipe(fs.createWriteStream('\workshop\\videoo.mp4'));
-//        res.send("Sababa");
-//    });
-
-
 
 app.get('*', function (req, res) {
     res.sendFile(path.join(__dirname, 'views/index.html'));
