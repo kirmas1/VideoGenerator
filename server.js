@@ -106,7 +106,6 @@ app.post('/test', function (req, res) {
                 if (index == data.length - 1)
                     return Promise.resolve('yay');
                 else {
-                    console.log('blending...');
                     return ffmpeg.createBlend(`\workshop\\${newFolderName}\\twoseczoomed_${ele.fileName.substr(0, ele.fileName.lastIndexOf('.'))}.mp4`,
                         `\workshop\\${newFolderName}\\twosec_${data[index + 1].fileName.substr(0, data[index + 1].fileName.lastIndexOf('.'))}.mp4`, 2, `\workshop\\${newFolderName}\\blend_${index}.mp4`);
                 }
@@ -152,14 +151,50 @@ app.post('/test', function (req, res) {
 
         var createZoomInEffectRequstPromise = function () {
             var d = data.map((ele, index, data) => {
-                return ffmpeg.createZoomInEffectVideo(`\workshop\\${newFolderName}\\${ele.fileName}`, 1280, 720, 3, `\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
+                return ffmpeg.createZoomInEffectVideo(`\workshop\\${newFolderName}\\${ele.fileName}`, 1280, 720, 5, `\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
+            });
+            return Promise.all(d);
+        }
+
+        var prepareCaptionTextFiles = function () {
+            var d = data.map((ele, index, data) => {
+                return new Promise((resolve, reject) => {
+                    var file_content = '';
+                    var i = 0;
+                    for (; i< Math.floor(ele.caption.length/55); i++) {
+                        //TODO find where to cut
+                        file_content += '       ' + ele.caption.substr(i*55, 55) + '\n';
+                    }
+                    file_content += '       ' + ele.caption.substr(i*55);
+                    
+                    fs.writeFile(`./workshop/${newFolderName}/caption_${index}.txt`, file_content, (err) => {
+                        resolve(0);
+                    })
+                });
+
+            });
+            return Promise.all(d);
+        }
+
+        var addTextRequestPromise = function () {
+            var d = data.map((ele, index, data) => {
+                return ffmpeg.drawTextSlidingFromLeftToRight(`\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, `\workshop\\${newFolderName}\\zoomeffectandText_${index}.mp4`, {
+                    text_file: `./workshop/${newFolderName}/caption_${index}.txt`,
+                    start_time: 0,
+                    font_size: 40,
+                    font_file: 'fonts/OpenSans-Italic.ttf',
+                    box: 1,
+                    font_color: 'white',
+                    box_color: 'black',
+                    box_opacity: 0.7
+                });
             });
             return Promise.all(d);
         }
 
         var captureLastFrameRequstPromise = function () {
             var d = data.map((ele, index, data) => {
-                return ffmpeg.captureLastFrame(`\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, 3, `\workshop\\${newFolderName}\\zoomvideolastframe_${ele.fileName}`);
+                return ffmpeg.captureLastFrame(`\workshop\\${newFolderName}\\zoomeffectandText_${index}.mp4`, 5, `\workshop\\${newFolderName}\\zoomvideolastframe_${ele.fileName}`);
             });
             return Promise.all(d);
         }
@@ -202,21 +237,21 @@ app.post('/test', function (req, res) {
         }
 
         var writeConcatTextFilePromise = function () {
-                return new Promise((resolve, reject) => {
-                    var file_content = '';
-                    for (var i = 0; i < data.length; i++) {
-                        if (i == data.length - 1) {
-                            file_content += "file " + "'\workshop\\" + newFolderName + "\\zoomeffect_" + i + ".mp4'";
-                        } else {
-                            file_content += "file " + "'\workshop\\" + newFolderName + "\\zoomeffect_" + i + ".mp4'" + os.EOL + "file " + "'\workshop\\" + newFolderName + "\\blend_" + i + ".mp4'" + os.EOL;
-                        }
+            return new Promise((resolve, reject) => {
+                var file_content = '';
+                for (var i = 0; i < data.length; i++) {
+                    if (i == data.length - 1) {
+                        file_content += "file " + "'\workshop\\" + newFolderName + "\\zoomeffectandText_" + i + ".mp4'";
+                    } else {
+                        file_content += "file " + "'\workshop\\" + newFolderName + "\\zoomeffectandText_" + i + ".mp4'" + os.EOL + "file " + "'\workshop\\" + newFolderName + "\\blend_" + i + ".mp4'" + os.EOL;
                     }
-                    fs.writeFile(`./workshop/${newFolderName}/files_to_concat.txt`, file_content, (err) => {
-                        console.log('finish writing txt file');
-                        resolve(0);
-                    })
-                });
-            }
+                }
+                fs.writeFile(`./workshop/${newFolderName}/files_to_concat.txt`, file_content, (err) => {
+                    console.log('finish writing txt file');
+                    resolve(0);
+                })
+            });
+        }
 
         var concatAllPromise = function () {
             return new Promise((resolve, reject) => {
@@ -227,10 +262,7 @@ app.post('/test', function (req, res) {
                         }
                         resolve(0);
                     });
-
                 }, 2000);
-
-
             });
         }
 
@@ -248,31 +280,48 @@ app.post('/test', function (req, res) {
             .then(() => {
                 console.log('Done Scaling');
                 return padPromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done Padding');
                 return createTwoSecClipsRequstPromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done create 2 sec clips');
                 return createZoomInEffectRequstPromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done createZoomInEffect clips');
+                return prepareCaptionTextFiles();
+            })
+            .then(() => {
+                console.log('Done prepareCaptionTextFiles');
+                return addTextRequestPromise();
+            })
+            .then(() => {
+                console.log('Done adding text');
                 return captureLastFrameRequstPromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done caputring last frame');
                 return createTwoSecZoomedClipsRequstPromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done creating zoomed in 2 sec clips');
                 return createTransitionsPromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done with Transitions clips');
                 return writeConcatTextFilePromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done writing the concat file');
                 return concatAllPromise();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('Done concat the files');
                 moveFinalFileToPublic();
-            }).then(() => {
+            })
+            .then(() => {
                 console.log('File moved to public');
                 res.end('final_' + newFolderName + '.mp4');
             })
