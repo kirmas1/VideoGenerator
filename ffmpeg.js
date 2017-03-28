@@ -26,6 +26,23 @@ var me = function () {
     }
 
     /*
+    same as createZoomInEffectVideo but to some spot near center of picture
+     */
+    var createZoomInEffectVideoRandomNearCenter = function (path_to_image, image_width, image_height, duration, path_to_output) {
+
+        return new Promise((resolve, reject) => {
+            let filter = '[0:v]scale=' + image_width * 4 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'if(gte(zoom,1.5),x,x+1/a)\':y=\'if(gte(zoom,1.5),y,y+1)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
+
+            execFile('ffmpeg', ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
+                if (error)
+                    reject(error);
+                else
+                    resolve(path_to_output);
+            });
+        })
+    }
+
+    /*
     Capture the last frame of the video into an image. Assuming the video is 25 fps.
     Input: video_duration - in seconds. should be lower than 60.
     */
@@ -60,9 +77,9 @@ var me = function () {
         })
     }
 
-    var createBlend = function (path_to_first_image, path_to_second_image, duration, path_to_output) {
+    var createBlend = function (path_to_first_video, path_to_second_video, duration, path_to_output) {
         return new Promise((resolve, reject) => {
-            execFile('ffmpeg', ['-i', path_to_second_image, '-i', path_to_first_image, '-filter_complex', `blend=all_expr='A*(if(gte(T,${duration}),1,T/${duration}))+B*(1-(if(gte(T,${duration}),1,T/${duration})))'`, path_to_output], (error, stdout, stderr) => {
+            execFile('ffmpeg', ['-i', path_to_second_video, '-i', path_to_first_video, '-filter_complex', `blend=all_expr='A*(if(gte(T,${duration}),1,T/${duration}))+B*(1-(if(gte(T,${duration}),1,T/${duration})))'`, path_to_output], (error, stdout, stderr) => {
                 if (error) {
                     console.log('blending failed :( ' + error);
                     reject(error);
@@ -73,26 +90,26 @@ var me = function () {
         })
     }
 
-
     //Deprecated
     var createDrawString = function (str, duration) {
-            var res = '';
-            var counter1 = 1;
-            var counter2 = 1.2
-            for (var i = 0; i < str.length; i++) {
-                if (i == str.length - 1) counter2 = duration;
-                res += "drawtext=fontsize=35:fontfile=workshop/OpenSans-Regular.ttf:text=\'" + str.substr(0, i + 1) + "\':x=100:y=(h-3*text_h):enable=between(t\\," + counter1 + "\\," + counter2 + '),';
-                counter1 += 0.2;
-                counter2 += 0.2;
-                counter1 = Math.round(counter1 * 100) / 100;
-                counter2 = Math.round(counter2 * 100) / 100;
-            }
-            return res.slice(0, -1);
+        var res = '';
+        var counter1 = 1;
+        var counter2 = 1.2
+        for (var i = 0; i < str.length; i++) {
+            if (i == str.length - 1) counter2 = duration;
+            res += "drawtext=fontsize=35:fontfile=workshop/OpenSans-Regular.ttf:text=\'" + str.substr(0, i + 1) + "\':x=100:y=(h-3*text_h):enable=between(t\\," + counter1 + "\\," + counter2 + '),';
+            counter1 += 0.2;
+            counter2 += 0.2;
+            counter1 = Math.round(counter1 * 100) / 100;
+            counter2 = Math.round(counter2 * 100) / 100;
         }
-        /*
-         *Type the text on the video
-         */
-        //Deprecated
+        return res.slice(0, -1);
+    }
+
+    /*
+     *Type the text on the video
+     */
+    //Deprecated
     var typeTextOnVideo = function (path_to_video, text, font_size, path_to_font) {
         var newFolderName = 'S1DJe3-ne';
         var ele = {
@@ -162,27 +179,80 @@ var me = function () {
         //x=(w-text_w)/2:y=(h-text_h)/2
         if (options.x == 'center') options.x = '(w-text_w)/2';
         if (options.y == 'center') options.y = '(h-text_h)/2';
-            return new Promise((res, rej) => {
-                execFile('ffmpeg', ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
-                    if (err) {
-                        console.log(err);
-                    }
-                    console.log(stdout);
-                }).on('exit', (code, signal) => {
-                    res(0);
-                });
+        return new Promise((res, rej) => {
+            execFile('ffmpeg', ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.log(stdout);
+            }).on('exit', (code, signal) => {
+                res(0);
             });
-        }
-    
+        });
+    }
+
+    /*
+    Both inputs should be 2 sec
+    Assuming 25 fps
+    */
+    var createUncoverLeftTransition = function (first_video, second_video, output_video) {
+        return new Promise((res, rej) => {
+            execFile('ffmpeg', ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(gte(25.6*N*SW+X,W),A,B)\'', output_video], (err, stdout, stdin) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.log(stdout);
+            }).on('exit', (code, signal) => {
+                res(0);
+            });
+        });
+    }
+
+    /*
+    Both inputs should be 2 sec
+    */
+    var createUncoverRightTransition = function (first_video, second_video, output_video) {
+        return new Promise((res, rej) => {
+            execFile('ffmpeg', ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(lte(X,25.6*N),A,B)\'', output_video], (err, stdout, stdin) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.log(stdout);
+            }).on('exit', (code, signal) => {
+                res(0);
+            });
+        });
+    }
+
+    /*
+    Both inputs should be 2 sec
+    */
+    var createUncoverDownTransition = function (first_video, second_video, output_video) {
+        return new Promise((res, rej) => {
+            execFile('ffmpeg', ['-i', first_video, '-i', second_video, '-filter_complex', 'blend=\'all_expr=if(gte(Y-14.4*N*SH,0),A,B)\'', output_video], (err, stdout, stdin) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.log(stdout);
+            }).on('exit', (code, signal) => {
+                res(0);
+            });
+        });
+    }
+
     return {
         createZoomInEffectVideo: createZoomInEffectVideo,
+        createZoomInEffectVideoRandomNearCenter: createZoomInEffectVideoRandomNearCenter,
         captureLastFrame: captureLastFrame,
         createVideoFromImage: createVideoFromImage,
-        createBlend: createBlend,
         drawTextNoEffects: drawTextNoEffects,
         typeTextOnVideo: typeTextOnVideo,
         drawTextSlidingFromLeftToRight: drawTextSlidingFromLeftToRight,
-        drawTextFadeInOutEffect: drawTextFadeInOutEffect
+        drawTextFadeInOutEffect: drawTextFadeInOutEffect,
+        createBlend: createBlend,
+        createUncoverLeftTransition: createUncoverLeftTransition,
+        createUncoverRightTransition: createUncoverRightTransition,
+        createUncoverDownTransition: createUncoverDownTransition
     }
 }
 
