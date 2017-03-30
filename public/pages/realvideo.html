@@ -19,7 +19,7 @@
                 <th>#</th>
                 <th>File name</th>
                 <th>Caption</th>
-                <th>Typing speed</th>
+                <!--                <th>Typing speed</th>-->
                 <th></th>
             </tr>
             <tr ng-repeat="item in listItems">
@@ -28,6 +28,7 @@
                 <td>
                     <input class="text_field_to_image" type="text" ng-model="item.caption">
                 </td>
+                <!--
                 <td>
                     <md-slider-container>
                         <md-slider flex min="1" max="10" ng-model="item.typeSpeed" aria-label="red" id="red-slider" class="md-primary">
@@ -37,6 +38,7 @@
                         </md-input-container>
                     </md-slider-container>
                 </td>
+-->
 
                 <td>
                     <div class="table-btns">
@@ -60,8 +62,12 @@
         </table>
     </div>
     <div class="centerized">
+       
         <button type="button" class="btn btn-lg btn-warning" ng-click="generateFile()" ng-disabled="listItems.length==0">Generate the Clip</button>
         <br>
+        
+        <md-progress-circular class="pre-video-prg-bar" md-diameter="96" ng-hide="!video_in_progress"></md-progress-circular>
+
         <md-button class="md-primary md-raised" ng-click="showAdvanced($event)" ng-show="video_is_ready">
             Watch it!
         </md-button>

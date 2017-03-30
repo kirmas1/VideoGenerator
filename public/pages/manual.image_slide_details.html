@@ -1,0 +1,75 @@
+<md-card flex>
+    <div layout="row" layout-align="center center">
+        <h1 class="md-headline">{{item.fileName}}</h1>
+    </div>
+    <md-card-content flex="95" layout="column" layout-align="space-between none">
+
+        <!------------ Duration ---------------->
+        <md-slider-container flex>
+            <span>Total Duration (sec)</span>
+            <md-slider flex min="0" max="30" ng-model="item.duration" aria-label="duration" id="duration-slider">
+            </md-slider>
+            <md-input-container>
+                <input flex type="number" ng-model="item.duration" aria-label="duration" aria-controls="duration-slider">
+            </md-input-container>
+        </md-slider-container>
+
+        <!-------------- Zoom ------------------->
+        <div flex layout="column" layout-align="start none">
+            <md-switch class="md-accent" md-no-ink aria-label="Zoom Effect" ng-model="item.zoom.enabled">
+                Zoom Effect
+            </md-switch>
+
+            <md-radio-group layout="row" ng-disabled="!item.zoom.enabled" ng-model="item.zoom.style">
+                <md-radio-button value=0> Center </md-radio-button>
+                <md-radio-button value=1>Random near center</md-radio-button>
+            </md-radio-group>
+        </div>
+
+        <!--caption -->
+        <div flex layout="row" layout-align="space-around none">
+
+            <md-input-container flex="50">
+                <label>Caption</label>
+                <input ng-model="item.cation.text">
+            </md-input-container>
+
+            <md-input-container>
+                <label>Font</label>
+                <md-select ng-model="item.cation.font">
+                    <md-option><em>None</em></md-option>
+                </md-select>
+            </md-input-container>
+
+            <md-input-container>
+                <label>Font Size</label>
+                <md-select ng-model="item.cation.fontsize">
+                    <md-option><em>None</em></md-option>
+                </md-select>
+            </md-input-container>
+
+            <md-input-container>
+                <label>Effect</label>
+                <md-select ng-model="item.cation.effect">
+                    <md-option value="None"><em>None</em></md-option>
+                    <md-option value="Sliding Right"><em>Sliding Right</em></md-option>
+                    <md-option value="Fade In Out"><em>Fade In Out</em></md-option>
+                </md-select>
+            </md-input-container>
+
+            <md-input-container>
+                <label>Start time</label>
+                <md-select ng-model="item.cation.startTime">
+                    <md-option><em>None</em></md-option>
+                </md-select>
+            </md-input-container>
+
+            <md-input-container>
+                <label>Duration</label>
+                <md-select ng-model="item.cation.duration">
+                    <md-option><em>None</em></md-option>
+                </md-select>
+            </md-input-container>
+        </div>
+    </md-card-content>
+</md-card>

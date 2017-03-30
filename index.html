@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Video Automation</title>
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+    <link href="css/styles.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+    <!-- Angular Material requires Angular.js Libraries -->
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+    <script type="text/javascript" src="javascripts/angular-ui-router.js"></script>
+    <script type="text/javascript" src="javascripts/app.js"></script>
+</head>
+
+<body layout="column" ng-app="videoAutomation">
+    <md-toolbar flex="10" layout="row" layout-align="center center" class="md-primary">
+        <h1>KBS Software Presents - <small><i>The video machine</i></small></h1>
+    </md-toolbar>
+    <md-content layout="column" flex ng-controller="mainNavCtrl">
+        <md-nav-bar md-selected-nav-item="currentNavItem" nav-bar-aria-label="navigation links">
+            <md-nav-item class="md-warn" md-nav-click="_goto('manual.instructions')" name="Manual">
+                Manual
+            </md-nav-item>
+            <md-nav-item md-nav-click="_goto('automatic')" name="Automatic">
+                Automatic
+            </md-nav-item>
+        </md-nav-bar>
+        <!--
+                <div layout="column" flex="90" ui-view class="ext-content slide">
+                </div>
+-->
+        <div layout="column" flex="90" ui-view class="ext-content md-whiteframe-24dp slide">
+        </div>
+    </md-content>
+
+    <div flex="15" ui-view="videosHistory" class="slide">Video History Goes here</div>
+</body>
+
+</html>

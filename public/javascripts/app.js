@@ -1,331 +1,239 @@
-var myApp = angular.module('myApp', ['ui.router', 'ngResource', 'ngMaterial']);
+var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAnimate'])
+
+.run(
+  ['$rootScope', '$state', '$stateParams',
+    function ($rootScope, $state, $stateParams) {
+
+            // It's very handy to add references to $state and $stateParams to the $rootScope
+            // so that you can access them from any scope within your applications.For example,
+            // <li ng-class="{ active: $state.includes('contacts.list') }"> will set the <li>
+            // to active whenever 'contacts.list' or one of its decendents is active.
+            $rootScope.$state = $state;
+            $rootScope.$stateParams = $stateParams;
+    }
+  ]
+)
+
+.config(
+  ['$stateProvider', '$urlRouterProvider', '$mdThemingProvider', function ($stateProvider, $urlRouterProvider, $mdThemingProvider) {
+
+        ///Theme 
+        $mdThemingProvider.theme('default')
+            .primaryPalette('blue-grey', {
+                'default': '500',
+                'hue-1': '300',
+                'hue-2': '800',
+                'hue-3': '50'
+            })
+            // If you specify less than all of the keys, it will inherit from the
+            // default shades
+            .accentPalette('deep-purple', {
+                'default': '500',
+                'hue-1': '300',
+                'hue-2': '800',
+                'hue-3': 'A100'
+            });
+
+        // Use $urlRouterProvider to configure any redirects (when) and invalid urls (otherwise).
+        $urlRouterProvider.otherwise('/manual');
+
+        $stateProvider
+            .state('manual', {
+                abstract: true,
+                url: '/manual',
+                templateUrl: 'pages/manual.html',
+                controller: 'manualCtrl'
+            })
+            .state('manual.instructions', {
+                url: '',
+                templateUrl: 'pages/manual.instructions.html'
+            })
+            .state('manual.imageDetails', {
+                url: '/images/{id:[0-9]{1,4}}',
+                templateUrl: 'pages/manual.image_slide_details.html',
+                controller: 'imageDetailsController'
+            })
+            .state('manual.transitionDetails', {
+                url: '/transitions/{id:[0-9]{1,4}}',
+                templateUrl: 'pages/manual.transition_slide_details.html',
+                controller: 'transitionDetailsController'
+            })
+            .state('automatic', {
+                url: '/automatic',
+                templateUrl: 'pages/automatic.html',
+                controller: ['$scope', '$state',
+                function ($scope, $state) {
+                        console.log("state = automatic");
+                }]
+            })
+
+  }]);
+
+myApp.controller('mainNavCtrl', ['$scope', '$state', function ($scope, $state) {
+    $scope.currentNavItem = 'Manual';
+    $scope._goto = function (state) {
+        console.log('mainNavCtrl acitve');
+        $state.go(state);
+    }
+}]);
 
 
-myApp.config(function ($stateProvider) {
-    $stateProvider
-        .state('homee', {
-            url: '',
-            templateUrl: 'pages/main.html',
-            controller: 'mainController'
-        })
-        .state('home', {
-            url: '/home',
-            templateUrl: 'pages/main.html',
-            controller: 'mainController'
-        })
-        .state('fakevideoplayer', {
-            url: '/thevideo',
-            templateUrl: 'pages/fakevideoplayer.html',
-            controller: 'fakeVideoPlayerController'
-        })
-        .state('realvideo', {
-            url: '/realvideo',
-            templateUrl: 'pages/realvideo.html',
-            controller: 'realVideoController'
-        })
-});
+myApp.controller('manualCtrl', ['$scope', '$state', 'videoService', function ($scope, $state, videoService) {
+
+    $scope.selectedIndex = null;
+    var uploadClicks = 0;
+    $scope.slides;
+
+    $scope.$watch('selectedIndex', function (newValue, oldValue) {
+        if (newValue != oldValue && newValue != null && oldValue == null)
+            $scope.goToSlideDetails(newValue, 0);
+    });
+
+    $scope.goToSlideDetails = function (id, type) {
+        $scope.selectedIndex = id;
+        console.log('goToSlideDetails, type: ' + type);
+        let state = type == 0 ? 'manual.imageDetails' : 'manual.transitionDetails';
+        $state.go(state, {
+            id: id
+        });
+    }
+
+    $scope.uploadFile = function (event) {
+        uploadClicks++;
+        if (uploadClicks == 1)
+            $scope.selectedIndex = 0;
+
+        videoService.uploadEvenet(event).then(() => {
+            $scope.slides = videoService.getSlides();
+            console.log('back to ctrl, $scope.slides are: ' + $scope.slides);
+            $scope.$digest();
+        });
+
+
+    }; //end of uploadFile 
+
+}]);
+
+myApp.controller('imageDetailsController', ['$scope', '$state', '$stateParams', 'videoService', function ($scope, $state, $stateParams, videoService) {
+
+    $scope.item = videoService.getSlide($stateParams.id);
+    
+}])
+
+myApp.controller('transitionDetailsController', ['$scope', '$state', '$stateParams', 'videoService', function ($scope, $state, $stateParams, videoService) {
+    $scope.item = videoService.getSlide($stateParams.id);
+}])
 
 myApp.service('videoService', function () {
+    var video = {
+        name: 'unknown',
+        slides: [] //slides includes transitions
+    };
 
-    var ImagesPath;
-    var textsList = [];
-    var imagesNames = [];
-    var typeSpeeds = [];
+    var readAndPreview = function (file, index) {
+        return new Promise((resolve, reject) => {
+            // Make sure `file.name` matches our extensions criteria
+            if (/\.(jpe?g|png|gif)$/i.test(file.name)) {
 
-    var addImageName = function (name) {
-        imagesNames.push(name);
+                var reader = new FileReader();
+
+                reader.addEventListener("load", function () {
+                    //push Image objects
+                    video.slides.push({
+                        type: 0, // 0 for image
+                        fileName: file.name,
+                        file: files[index],
+                        caption: "",
+                        thumbnail: this.result,
+                        zoom: {
+                            enabled: true,
+                            style: 1 // 0-zoom to center. 1-zoom to random place near center
+                        },
+                        duration: 10
+                    })
+                    resolve();
+                }, false);
+
+                reader.readAsDataURL(file);
+
+            } else reject('Not an image file');
+        });
+
     };
-    var getImagesNames = function () {
-        return imagesNames;
+
+    var saveAllFiles = function (files) {
+        var ik = [];
+        if (files) {
+            for (let i = 0; i < files.length; i++) {
+                ik.push(readAndPreview(files[i], i));
+            }
+            return Promise.all(ik);
+        } else
+            return Promise.reject('No Files');
     };
-    var addText = function (newObj) {
-        textsList.push(newObj);
+
+    var insertTransitionObjects = function () {
+        for (let j = 0; j < video.slides.length - 1; j++) {
+            if (video.slides[j].type == 0 && video.slides[j + 1].type == 0) {
+                //Push (splice) Transition objects
+                video.slides.splice(j + 1, 0, {
+                    type: 1, // 1 for Blend
+                    fileName: 'Transition',
+                    thumbnail: 'images/transition.jpg',
+                    duration:2,
+                    effect:{
+                        //0 - blend, 1 - uncover
+                        type: "None",
+                        uncover:null //0-left, 1-right, 2-down
+                    }
+                });
+            }
+        }
+        return Promise.resolve;
     };
-    var addTexts = function (arr) {
-        textsList.push.apply(textsList, arr)
+
+    var assignIds = function () {
+        for (let i = 0; i < video.slides.length; i++) {
+            video.slides[i].id = i;
+        }
+        return Promise.resolve();
     };
-    var getTexts = function () {
-        return textsList;
+
+    var uploadEvenet = function (event) {
+        return new Promise((resolve, reject) => {
+
+            files = event.target.files;
+            console.log('service uploadevent, files are: ' + files);
+
+            saveAllFiles(files)
+                .then(() => {
+                    return insertTransitionObjects();
+                })
+                .then(() => {
+                    return assignIds();
+                })
+                .then(() => {
+                    console.log('service uploadevent, video.slides are: ' + video.slides);
+                    resolve(0);
+                });
+        });
+
     };
-    var setImagesPath = function (path) {
-        ImagesPath = (path);
+
+    var getSlides = function () {
+        return video.slides;
     };
-    var getImagesPath = function () {
-        return ImagesPath;
-    };
-    var addTypeSpeed = function (speed) {
-        typeSpeeds.push(speed);
-    };
-    var getTypeSpeeds = function () {
-        return typeSpeeds;
-    };
+
+    var getSlide = function (id) {
+        return video.slides[id];
+    }
 
     return {
-        addImageName: addImageName,
-        getImagesNames: getImagesNames,
-        addText: addText,
-        addTexts: addTexts,
-        getTexts: getTexts,
-        setImagesPath: setImagesPath,
-        getImagesPath: getImagesPath,
-        addTypeSpeed: addTypeSpeed,
-        getTypeSpeeds: getTypeSpeeds
+        uploadEvenet: uploadEvenet,
+        getSlides: getSlides,
+        getSlide: getSlide
     };
-
-});
-
-
-myApp.controller('mainController', ['$state', '$http', '$scope', 'videoService', function ($state, $http, $scope, videoService) {
-
-
-    var imageFiles = []; //for sending to server
-    var file;
-    var formData = new FormData(); // Currently empty
-    $scope.chosenImageName = "";
-    $scope.ListItems = [];
-
-    $scope.isReadyToAddItem = function () {
-        return ($scope.chosenImageName != "");
-    }
-
-    $scope.uploadFile = function (event) {
-        file = event.target.files;
-        $scope.$apply(function () {
-            $scope.chosenImageName = file[0].name;
-        });
-    };
-
-    $scope.addItem = function () {
-        //        imageFiles.push.apply(imageFiles, file);  if we want to allow multiple
-        imageFiles.push(file[0]);
-        $scope.ListItems.push({
-                fileName: $scope.chosenImageName,
-                caption: $scope.caption || "        ",
-                typeSpeed: 5
-            })
-            //Reset the input fields:
-        $scope.chosenImageName = "";
-        $scope.caption = "";
-    }
-
-    $scope.removeItem = function (index) {
-        $scope.ListItems.splice(index, 1);
-        imageFiles.splice(index, 1);
-
-    }
-
-    var swipe = function (origin, dest) {
-
-        var temp = $scope.ListItems[dest];
-        var tempFile = imageFiles[dest];
-
-        $scope.ListItems[dest] = $scope.ListItems[origin];
-        $scope.ListItems[origin] = temp;
-
-        imageFiles[dest] = imageFiles[origin];
-        imageFiles[origin] = tempFile;
-    }
-
-    $scope.moveUpItem = function (index) {
-        swipe(index, index - 1);
-    }
-
-    $scope.moveDownItem = function (index) {
-        swipe(index, index + 1);
-    }
-
-    $scope.generateFile = function () {
-
-        var arrayLength = imageFiles.length;
-        for (var i = 0; i < arrayLength; i++) {
-            formData.append('images', imageFiles[i]);
-            formData.append('captions', $scope.ListItems[i].caption);
-            videoService.addText($scope.ListItems[i].caption);
-            videoService.addImageName($scope.ListItems[i].fileName);
-            videoService.addTypeSpeed($scope.ListItems[i].typeSpeed);
-        }
-
-        var xhr = new XMLHttpRequest();
-
-        xhr.onreadystatechange = function () {
-
-            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                console.log("xhr.responseText is: " + xhr.responseText);
-                videoService.setImagesPath(xhr.responseText);
-                $state.go('fakevideoplayer');
-            }
-        };
-
-        xhr.open("POST", "/generate");
-        xhr.send(formData);
-    }
-
-}]);
-
-myApp.controller('realVideoController', ['$state', '$http', '$scope', 'videoService', '$mdDialog', function ($state, $http, $scope, videoService, $mdDialog) {
-
-    var imageFiles = []; //for sending to server
-    var formData = new FormData(); // Currently empty
-
-    $scope.listItems = [];
-    $scope.video_is_ready = false;
-
-    $scope.removeItem = function (index) {
-        $scope.listItems.splice(index, 1);
-        imageFiles.splice(index, 1);
-
-    }
-
-    var swipe = function (origin, dest) {
-
-        var temp = $scope.listItems[dest];
-        var tempFile = imageFiles[dest];
-
-        $scope.listItems[dest] = $scope.listItems[origin];
-        $scope.listItems[origin] = temp;
-
-        imageFiles[dest] = imageFiles[origin];
-        imageFiles[origin] = tempFile;
-    }
-
-    $scope.moveUpItem = function (index) {
-        swipe(index, index - 1);
-    }
-
-    $scope.moveDownItem = function (index) {
-        swipe(index, index + 1);
-    }
-
-    $scope.uploadFile = function (event) {
-        files = event.target.files;
-
-        for (var i = 0; i < files.length; i++) {
-            $scope.$apply($scope.listItems.push({
-                fileName: files[i].name,
-                caption: "",
-                typeSpeed: 5
-            }))
-            imageFiles.push(files[i]);
-        }
-
-    };
-
-    $scope.generateFile = function () {
-
-        for (var i = 0; i < imageFiles.length; i++) {
-            formData.append('images', imageFiles[i], imageFiles[i].name);
-            //formData.append('captions', $scope.listItems[i].caption);
-        }
-        formData.append('info', JSON.stringify($scope.listItems));
-        var xhr = new XMLHttpRequest();
-
-
-        xhr.onreadystatechange = function () {
-
-            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                console.log("xhr.responseText is: " + xhr.responseText);
-                videoService.setImagesPath(xhr.responseText);
-                $scope.video_is_ready = true;
-                $scope.$digest();
-                
-                //$state.go('theRealVideoPlayer');
-            }
-        };
-
-        xhr.open("POST", "/test");
-        xhr.send(formData);
-
-
-    }
-
-    $scope.showAdvanced = function (ev) {
-        $mdDialog.show({
-                controller: DialogController,
-                templateUrl: 'pages/videodialog.html',
-                //parent: angular.element(document.body),
-                targetEvent: ev,
-                clickOutsideToClose: true,
-                fullscreen: $scope.customFullscreen // Only for -xs, -sm breakpoints.
-            })
-            .then(function (answer) {
-                $scope.status = 'You said the information was "' + answer + '".';
-            }, function () {
-                $scope.status = 'You cancelled the dialog.';
-            });
-    };
-
-    function DialogController($scope, $mdDialog) {
-        $scope.video_src = '/videos/' + videoService.getImagesPath();
-        $scope.closeDialog = function () {
-            $mdDialog.hide();
-        }
-        $scope.cancel = function () {
-            $mdDialog.cancel();
-        };
-    }
-
-
-            }]);
-
-myApp.controller('fakeVideoPlayerController', ['$timeout', '$scope', 'videoService', function ($timeout, $scope, videoService) {
-    var texts = videoService.getTexts();
-    var imagesPath = videoService.getImagesPath();
-    var imagesNames = videoService.getImagesNames();
-    var typeSpeeds = videoService.getTypeSpeeds();
-
-    $scope.activated = false;
-
-    $scope.startVideo = function () {
-        jQuery(".play-btn").hide();
-        $scope.activated = true;
-        $timeout(function () {
-            $scope.activated = false;
-            jQuery('.typeTextH2').css("top", "80%");
-            jQuery('.typeTextH2').css("left", "4%");
-            jQuery('.typeTextH2').show();
-            playVideo(0);
-        }, 2200);
-
-    }
-
-    var playVideo = function (index) {
-        if (index < texts.length) {
-            console.log(200 - 20 * typeSpeeds[index]);
-            jQuery(".element").typed({
-                strings: [texts[index]],
-                typeSpeed: (200 - 20 * typeSpeeds[index]),
-                preStringTyped: function () {
-                    jQuery('#theImage').attr('src', imagesPath + '/' + imagesNames[index]);
-                },
-                callback: function () {
-                    setTimeout(function () {
-                        playVideo(index + 1);
-                    }, 1500);
-                }
-            });
-
-        } else {
-            jQuery('.typeTextH2').css("top", "50%");
-            jQuery('.typeTextH2').css("left", "38%");
-
-            jQuery(".element").typed({
-                strings: ["Thank you for watching"],
-                typeSpeed: 100,
-                preStringTyped: function () {
-                    jQuery('#theImage').attr('src', "/images/endScreen.jpg");
-                },
-                callback: function () {
-                    jQuery('#theImage').attr('src', "");
-                    jQuery('.typeTextH2').hide();
-                    jQuery(".play-btn").show();
-                }
-            });
-        }
-
-    };
-
-}]);
-
+})
 
 myApp.directive('customOnChange', function () {
     return {
