@@ -1,3 +1,5 @@
+'use strict'
+
 const execFile = require('child_process').execFile;
 var _ = require('lodash');
 var fs = require('fs');
