@@ -1,5 +1,4 @@
 var execFile = require('child_process').execFile;
-var _ = require('lodash');
 var fs = require('fs');
 var os = require("os");
 var util = require('util');
@@ -32,7 +31,7 @@ var me = function () {
                 return new Promise(function (resolve) {
 
                     var filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
-                    var child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg'], (error, stdout, stderr) => {
+                    var child = execFile('ffmpeg', ['-i', '.\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '.\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -47,7 +46,7 @@ var me = function () {
             var pad_requests = images.map(function (ele, index) {
                 return new Promise(function (resolve) {
                     var filter = 'pad=1280:720:(ow-iw)/2:(oh-ih)/2';
-                    var child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg', '-vf', filter, '\workshop\\' + newFolderName + '\\scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
+                    var child = execFile('ffmpeg', ['-i', '.\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg', '-vf', filter, '.\workshop\\' + newFolderName + '\\scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -63,13 +62,13 @@ var me = function () {
             var zoom_requests = images.map(function (ele, index) {
                 if (ele.zoom.enabled == true) {
                     if (ele.zoom.style == 0) {
-                        return createZoomInEffectVideo(`\workshop\\${newFolderName}\\scaled_padded${index}.jpg`, 1280, 720, ele.duration, `\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
+                        return createZoomInEffectVideo(`.\workshop\\${newFolderName}\\scaled_padded${index}.jpg`, 1280, 720, ele.duration, `.\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
 
                     } else {
-                        return createZoomInEffectVideoNearCenter(`\workshop\\${newFolderName}\\scaled_padded${index}.jpg`, 1280, 720, ele.duration, `\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
+                        return createZoomInEffectVideoNearCenter(`.\workshop\\${newFolderName}\\scaled_padded${index}.jpg`, 1280, 720, ele.duration, `.\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
                     }
                 } else { //Dont zoom
-                    return createVideoFromImage(`\workshop\\${newFolderName}\\\scaled_padded${index}.jpg`, ele.duration, `\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
+                    return createVideoFromImage(`.\workshop\\${newFolderName}\\\scaled_padded${index}.jpg`, ele.duration, `.\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`);
                 }
 
             })
@@ -144,7 +143,7 @@ var me = function () {
 
                 switch (Number(ele.caption.effect)) {
                     case 0:
-                        return drawTextNoEffects(`\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, `\workshop\\${newFolderName}\\zt_${index}.mp4`, {
+                        return drawTextNoEffects(`.\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, `.\workshop\\${newFolderName}\\zt_${index}.mp4`, {
                             font_file: fontPath(ele.caption.font, ele.caption.bold, ele.caption.italic),
                             font_size: Number(ele.caption.fontsize),
                             font_color: 'white',
@@ -168,7 +167,7 @@ var me = function () {
                             text_file: `./workshop/${newFolderName}/caption_${index}.txt`
                         };
                         //                        console.log('options for drawTextSliding' + util.inspect(_options));
-                        return drawTextSlidingFromLeftToRight(`\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, `\workshop\\${newFolderName}\\zt_${index}.mp4`, _options);
+                        return drawTextSlidingFromLeftToRight(`.\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, `.\workshop\\${newFolderName}\\zt_${index}.mp4`, _options);
                         break;
                     case 2:
                         console.log('---------------------------------------');
@@ -200,7 +199,7 @@ var me = function () {
                             fade_out_end_time: Number(ele.caption.startTime) + 1 + Number(ele.caption.duration) + 1
                         };
                         console.log('options for drawTextFadeInOutEffect' + util.inspect(case_2_options))
-                        return drawTextFadeInOutEffect(`\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, `\workshop\\${newFolderName}\\zt_${index}.mp4`, case_2_options)
+                        return drawTextFadeInOutEffect(`.\workshop\\${newFolderName}\\zoomeffect_${index}.mp4`, `.\workshop\\${newFolderName}\\zt_${index}.mp4`, case_2_options)
                         break;
                     default:
                         return Promise.reslove;
@@ -213,21 +212,21 @@ var me = function () {
 
             var firstStep = function () {
                 var p = transitions.map((ele, index) => {
-                    return createVideoFromImage(`\workshop\\${newFolderName}\\scaled_padded${index+1}.jpg`, ele.duration, `\workshop\\${newFolderName}\\p${index}.mp4`);
+                    return createVideoFromImage(`.\workshop\\${newFolderName}\\scaled_padded${index+1}.jpg`, ele.duration, `.\workshop\\${newFolderName}\\p${index}.mp4`);
                 });
                 return Promise.all(p);
             };
 
             var secondStep = function () {
                 var lf = transitions.map((ele, index) => {
-                    return captureLastFrame(`\workshop\\${newFolderName}\\zt_${index}.mp4`, images[index].duration, `\workshop\\${newFolderName}\\lf${index}.jpg`);
+                    return captureLastFrame(`.\workshop\\${newFolderName}\\zt_${index}.mp4`, images[index].duration, `.\workshop\\${newFolderName}\\lf${index}.jpg`);
                 });
                 return Promise.all(lf);
             };
 
             var thirdStep = function () {
                 var lfv = transitions.map((ele, index) => {
-                    return createVideoFromImage(`\workshop\\${newFolderName}\\lf${index}.jpg`, ele.duration, `\workshop\\${newFolderName}\\lfv${index}.mp4`);
+                    return createVideoFromImage(`.\workshop\\${newFolderName}\\lf${index}.jpg`, ele.duration, `.\workshop\\${newFolderName}\\lfv${index}.mp4`);
                 });
                 return Promise.all(lfv);
             };
@@ -239,18 +238,18 @@ var me = function () {
                     switch (Number(ele.effect.type)) {
                         case 0:
                             console.log('in case 0');
-                            return createBlend(`\workshop\\${newFolderName}\\lfv${index}.mp4`, `\workshop\\${newFolderName}\\p${index}.mp4`, ele.duration, `\workshop\\${newFolderName}\\transition${index}.mp4`);
+                            return createBlend(`.\workshop\\${newFolderName}\\lfv${index}.mp4`, `.\workshop\\${newFolderName}\\p${index}.mp4`, ele.duration, `.\workshop\\${newFolderName}\\transition${index}.mp4`);
                             break;
                         case 1:
                             switch (Number(ele.effect.uncover)) {
                                 case 0:
-                                    return createUncoverLeftTransition(`\workshop\\${newFolderName}\\lfv${index}.mp4`, `\workshop\\${newFolderName}\\p${index}.mp4`, `\workshop\\${newFolderName}\\transition${index}.mp4`);
+                                    return createUncoverLeftTransition(`.\workshop\\${newFolderName}\\lfv${index}.mp4`, `.\workshop\\${newFolderName}\\p${index}.mp4`, `.\workshop\\${newFolderName}\\transition${index}.mp4`);
                                     break;
                                 case 1:
-                                    return createUncoverRightTransition(`\workshop\\${newFolderName}\\lfv${index}.mp4`, `\workshop\\${newFolderName}\\p${index}.mp4`, `\workshop\\${newFolderName}\\transition${index}.mp4`);
+                                    return createUncoverRightTransition(`.\workshop\\${newFolderName}\\lfv${index}.mp4`, `.\workshop\\${newFolderName}\\p${index}.mp4`, `.\workshop\\${newFolderName}\\transition${index}.mp4`);
                                     break;
                                 case 2:
-                                    return createUncoverDownTransition(`\workshop\\${newFolderName}\\lfv${index}.mp4`, `\workshop\\${newFolderName}\\p${index}.mp4`, `\workshop\\${newFolderName}\\transition${index}.mp4`);
+                                    return createUncoverDownTransition(`.\workshop\\${newFolderName}\\lfv${index}.mp4`, `.\workshop\\${newFolderName}\\p${index}.mp4`, `.\workshop\\${newFolderName}\\transition${index}.mp4`);
                                     break;
                                 default:
                                     return Promise.reslove();
@@ -290,9 +289,9 @@ var me = function () {
                 var file_content = '';
                 for (var i = 0; i < images.length; i++) {
                     if (i == images.length - 1) {
-                        file_content += "file " + "'\workshop\\" + newFolderName + "\\zt_" + i + ".mp4'";
+                        file_content += "file " + "'.\workshop\\" + newFolderName + "\\zt_" + i + ".mp4'";
                     } else {
-                        file_content += "file " + "'\workshop\\" + newFolderName + "\\zt_" + i + ".mp4'" + os.EOL + "file " + "'\workshop\\" + newFolderName + "\\transition" + i + ".mp4'" + os.EOL;
+                        file_content += "file " + "'.\workshop\\" + newFolderName + "\\zt_" + i + ".mp4'" + os.EOL + "file " + "'.\workshop\\" + newFolderName + "\\transition" + i + ".mp4'" + os.EOL;
                     }
                 }
                 fs.writeFile(`./workshop/${newFolderName}/files_to_concat.txt`, file_content, (err) => {
@@ -317,7 +316,7 @@ var me = function () {
 
         var moveFinalFileToPublic = function () {
             return new Promise((resolve, reject) => {
-                readable = fs.createReadStream("\workshop\\" + newFolderName + "\\final_" + newFolderName + ".mp4");
+                readable = fs.createReadStream(".\workshop\\" + newFolderName + "\\final_" + newFolderName + ".mp4");
                 readable.on('end', () => {
                     resolve(0);
                 });
@@ -486,7 +485,7 @@ var me = function () {
         }
         return new Promise((resolve, reject) => {
             var duration = Math.ceil(ele.caption.length * 0.15 + 2);
-            exec('ffmpeg -loop 1 -i \workshop\\' + newFolderName + '\\' + ele.fileName + ' -vf "' + createDrawString(ele.caption, duration) + ',format=yuv420p' + '" ' + '-t ' + duration + " \workshop\\" + newFolderName + "\\" + '11111test.mp4', (err, stdout, stderr) => {
+            exec('ffmpeg -loop 1 -i .\workshop\\' + newFolderName + '\\' + ele.fileName + ' -vf "' + createDrawString(ele.caption, duration) + ',format=yuv420p' + '" ' + '-t ' + duration + " .\workshop\\" + newFolderName + "\\" + '11111test.mp4', (err, stdout, stderr) => {
                 if (err) {
                     console.log(err);
                 }
