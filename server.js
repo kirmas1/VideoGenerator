@@ -7,7 +7,6 @@ const exec = require('child_process').exec;
 const util = require('util');
 var formidable = require('formidable');
 var shortid = require('shortid');
-var sizeOf = require('image-size');
 const execFile = require('child_process').execFile;
 const ffmpeg = require('./ffmpeg');
 var os = require("os");
