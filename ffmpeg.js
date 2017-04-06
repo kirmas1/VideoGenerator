@@ -2,6 +2,9 @@ var execFile = require('child_process').execFile;
 var fs = require('fs');
 var os = require("os");
 var util = require('util');
+var configuration = require('./configuration');
+
+var ffmpeg = configuration.FFMPEG_PATH;
 
 var me = function () {
 
@@ -31,7 +34,7 @@ var me = function () {
                 return new Promise(function (resolve) {
 
                     var filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
-                    var child = execFile('ffmpeg', ['-i', '.\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '.\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg'], (error, stdout, stderr) => {
+                    var child = execFile(ffmpeg, ['-i', '.\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '.\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -46,7 +49,7 @@ var me = function () {
             var pad_requests = images.map(function (ele, index) {
                 return new Promise(function (resolve) {
                     var filter = 'pad=1280:720:(ow-iw)/2:(oh-ih)/2';
-                    var child = execFile('ffmpeg', ['-i', '.\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg', '-vf', filter, '.\workshop\\' + newFolderName + '\\scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
+                    var child = execFile(ffmpeg, ['-i', '.\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg', '-vf', filter, '.\workshop\\' + newFolderName + '\\scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -304,7 +307,7 @@ var me = function () {
         var concatAllPromise = function () {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
-                    var child = execFile('ffmpeg', ['-f', "concat", '-safe', '0', '-i', 'workshop\\' + newFolderName + '\\files_to_concat.txt', '-c', 'copy', 'workshop\\' + newFolderName + '\\final_' + newFolderName + '.mp4'], (error, stdout, stderr) => {
+                    var child = execFile(ffmpeg, ['-f', "concat", '-safe', '0', '-i', 'workshop\\' + newFolderName + '\\files_to_concat.txt', '-c', 'copy', 'workshop\\' + newFolderName + '\\final_' + newFolderName + '.mp4'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -380,7 +383,7 @@ var me = function () {
         return new Promise((resolve, reject) => {
             var filter = '[0:v]scale=' + image_width * 6 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
 
-            execFile('ffmpeg', ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
+            execFile(ffmpeg, ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 console.log('finished ' + ' createZoomInEffectVideo for: ' + path_to_image);
                 if (error)
                     reject(error);
@@ -398,7 +401,7 @@ var me = function () {
         return new Promise((resolve, reject) => {
             var filter = '[0:v]scale=' + image_width * 4 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'if(gte(zoom,1.5),x,x+1/a)\':y=\'if(gte(zoom,1.5),y,y+1)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
 
-            execFile('ffmpeg', ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
+            execFile(ffmpeg, ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 console.log('finished ' + ' createZoomInEffectVideoNearCenter for: ' + path_to_image);
                 if (error)
                     reject(error);
@@ -419,7 +422,7 @@ var me = function () {
 
         return new Promise((resolve, reject) => {
             //$ ffmpeg -i aaa.mp4 -ss 00:00:07.96 -vframes 1 ab.jpg
-            execFile('ffmpeg', ['-i', path_to_video, '-ss', last_frame, '-vframes', 1, path_to_output], (error, stdout, stderr) => {
+            execFile(ffmpeg, ['-i', path_to_video, '-ss', last_frame, '-vframes', 1, path_to_output], (error, stdout, stderr) => {
                 if (error)
                     reject(error);
                 else
@@ -434,7 +437,7 @@ var me = function () {
     */
     var createVideoFromImage = function (path_to_image, duration, path_to_output) {
         return new Promise((resolve, reject) => {
-            execFile('ffmpeg', ['-loop', 1, '-i', path_to_image, '-vf', 'format=yuv420p,setsar=1:1', '-t', duration, path_to_output], (error, stdout, stderr) => {
+            execFile(ffmpeg, ['-loop', 1, '-i', path_to_image, '-vf', 'format=yuv420p,setsar=1:1', '-t', duration, path_to_output], (error, stdout, stderr) => {
                 if (error)
                     reject(error);
                 else
@@ -446,7 +449,7 @@ var me = function () {
     var createBlend = function (path_to_first_video, path_to_second_video, duration, path_to_output) {
         console.log('creating Blend');
         return new Promise((resolve, reject) => {
-            execFile('ffmpeg', ['-i', path_to_second_video, '-i', path_to_first_video, '-filter_complex', `blend=all_expr='A*(if(gte(T,${duration}),1,T/${duration}))+B*(1-(if(gte(T,${duration}),1,T/${duration})))'`, path_to_output], (error, stdout, stderr) => {
+            execFile(ffmpeg, ['-i', path_to_second_video, '-i', path_to_first_video, '-filter_complex', `blend=all_expr='A*(if(gte(T,${duration}),1,T/${duration}))+B*(1-(if(gte(T,${duration}),1,T/${duration})))'`, path_to_output], (error, stdout, stderr) => {
                 if (error) {
                     console.log('blending failed :( ' + error);
                     reject(error);
@@ -507,7 +510,7 @@ var me = function () {
     var drawTextNoEffects = function (path_to_video, path_to_output, options) {
         //TODO: set undefined options
         return new Promise((resolve, reject) => {
-            execFile('ffmpeg', ['-i', path_to_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:box=${options.box}:boxcolor=${options.box_color}@${options.box_opacity}:boxborderw=10:fontfile=${options.font_file}:textfile=${options.text_file}:x=${options.x}:y=${options.y}`, path_to_output], (err, stdout, stderr) => {
+            execFile(ffmpeg, ['-i', path_to_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:box=${options.box}:boxcolor=${options.box_color}@${options.box_opacity}:boxborderw=10:fontfile=${options.font_file}:textfile=${options.text_file}:x=${options.x}:y=${options.y}`, path_to_output], (err, stdout, stderr) => {
                 if (err) {
                     console.log(err);
                 }
@@ -523,7 +526,7 @@ var me = function () {
         return new Promise((resolve, reject) => {
             console.log('inside drawTextSlidingFromLeftToRight function, options are: ' + util.inspect(options));
 
-            execFile('ffmpeg', ['-i', path_to_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:box=${options.box}:boxcolor=${options.box_color}@${options.box_opacity}:boxborderw=10:fontfile=${options.font_file}:textfile=${options.text_file}:y=h-4*line_h:x=if(gt(800*(t-${options.start_time})-text_w\\,0)\\,0\\,800*(t-${options.start_time})-text_w)`, path_to_output], (err, stdout, stderr) => {
+            execFile(ffmpeg, ['-i', path_to_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:box=${options.box}:boxcolor=${options.box_color}@${options.box_opacity}:boxborderw=10:fontfile=${options.font_file}:textfile=${options.text_file}:y=h-4*line_h:x=if(gt(800*(t-${options.start_time})-text_w\\,0)\\,0\\,800*(t-${options.start_time})-text_w)`, path_to_output], (err, stdout, stderr) => {
                 if (err) {
                     console.log(err);
                 }
@@ -559,7 +562,7 @@ var me = function () {
             var arguments = ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path];
 
             console.log(arguments);
-            execFile('ffmpeg', ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
+            execFile(ffmpeg, ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
                 if (err) {
                     console.log(err);
                 }
@@ -576,7 +579,7 @@ var me = function () {
     */
     var createUncoverLeftTransition = function (first_video, second_video, output_video) {
         return new Promise((res, rej) => {
-            execFile('ffmpeg', ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(gte(25.6*N*SW+X,W),A,B)\'', output_video], (err, stdout, stdin) => {
+            execFile(ffmpeg, ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(gte(25.6*N*SW+X,W),A,B)\'', output_video], (err, stdout, stdin) => {
                 if (err) {
                     console.log(err);
                 }
@@ -592,7 +595,7 @@ var me = function () {
     */
     var createUncoverRightTransition = function (first_video, second_video, output_video) {
         return new Promise((res, rej) => {
-            execFile('ffmpeg', ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(lte(X,25.6*N),A,B)\'', output_video], (err, stdout, stdin) => {
+            execFile(ffmpeg, ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(lte(X,25.6*N),A,B)\'', output_video], (err, stdout, stdin) => {
                 if (err) {
                     console.log(err);
                 }
@@ -608,7 +611,7 @@ var me = function () {
     */
     var createUncoverDownTransition = function (first_video, second_video, output_video) {
         return new Promise((res, rej) => {
-            execFile('ffmpeg', ['-i', first_video, '-i', second_video, '-filter_complex', 'blend=\'all_expr=if(gte(Y-14.4*N*SH,0),A,B)\'', output_video], (err, stdout, stdin) => {
+            execFile(ffmpeg, ['-i', first_video, '-i', second_video, '-filter_complex', 'blend=\'all_expr=if(gte(Y-14.4*N*SH,0),A,B)\'', output_video], (err, stdout, stdin) => {
                 if (err) {
                     console.log(err);
                 }
