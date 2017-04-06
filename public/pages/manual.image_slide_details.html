@@ -1,21 +1,26 @@
 <md-card flex>
+
+    <!------------ Headline ---------------->
+
     <div layout="row" layout-align="center center">
         <h1 class="md-headline">{{item.fileName}}</h1>
     </div>
-    <md-card-content flex="95" layout="column" layout-align="space-between none">
+    <md-card-content flex="95" layout="column" layout-margin layout-padding layout-align="space-between none">
 
         <!------------ Duration ---------------->
-        <md-slider-container flex>
-            <span>Total Duration (sec)</span>
-            <md-slider flex min="0" max="30" ng-model="item.duration" aria-label="duration" id="duration-slider">
-            </md-slider>
-            <md-input-container>
-                <input flex type="number" ng-model="item.duration" aria-label="duration" aria-controls="duration-slider">
-            </md-input-container>
-        </md-slider-container>
 
-        <!-------------- Zoom ------------------->
-        <div flex layout="column" layout-align="start none">
+        <div flex="50" layout="column" layout-align="start none">
+            <md-slider-container flex>
+                <span>Total Duration (sec)</span>
+                <md-slider flex min="0" max="120" ng-model="item.duration" aria-label="duration" id="duration-slider">
+                </md-slider>
+                <md-input-container>
+                    <input flex type="number" ng-model="item.duration" aria-label="duration" aria-controls="duration-slider">
+                </md-input-container>
+            </md-slider-container>
+
+            <!-------------- Zoom ------------------->
+
             <md-switch class="md-accent" md-no-ink aria-label="Zoom Effect" ng-model="item.zoom.enabled">
                 Zoom Effect
             </md-switch>
@@ -25,51 +30,58 @@
                 <md-radio-button value=1>Random near center</md-radio-button>
             </md-radio-group>
         </div>
+        <!------------- caption ------------------------>
 
-        <!--caption -->
-        <div flex layout="row" layout-align="space-around none">
-
-            <md-input-container flex="50">
+        <div flex="50" layout="column">
+            <md-input-container>
                 <label>Caption</label>
-                <input ng-model="item.cation.text">
+                <input ng-model="item.caption.text">
             </md-input-container>
 
-            <md-input-container>
-                <label>Font</label>
-                <md-select ng-model="item.cation.font">
-                    <md-option><em>None</em></md-option>
-                </md-select>
-            </md-input-container>
+            <!-------------------Font style -------------------->
 
-            <md-input-container>
-                <label>Font Size</label>
-                <md-select ng-model="item.cation.fontsize">
-                    <md-option><em>None</em></md-option>
-                </md-select>
-            </md-input-container>
+            <div flex layout="row" layout-align="none none">
+                <md-input-container>
+                    <label>Font</label>
+                    <md-select ng-model="item.caption.font">
+                        <md-option ng-repeat="font in fontList" value={{font}}><em>{{font}}</em></md-option>
+                    </md-select>
+                </md-input-container>
 
-            <md-input-container>
-                <label>Effect</label>
-                <md-select ng-model="item.cation.effect">
-                    <md-option value="None"><em>None</em></md-option>
-                    <md-option value="Sliding Right"><em>Sliding Right</em></md-option>
-                    <md-option value="Fade In Out"><em>Fade In Out</em></md-option>
-                </md-select>
-            </md-input-container>
+                <md-input-container>
+                    <label>Font Size</label>
+                    <md-select ng-model="item.caption.fontsize">
+                        <md-option ng-repeat="size in fontSizeList" value={{size}}><em>{{size}}</em></md-option>
+                    </md-select>
+                </md-input-container>
+                <!---------------    Effect  -------------------->
+                <md-input-container>
+                    <label>Effect</label>
+                    <md-select ng-model="item.caption.effect">
+                        <md-option value=0><em>None</em></md-option>
+                        <md-option value=1><em>Sliding Right</em></md-option>
+                        <md-option value=2><em>Fade In Out</em></md-option>
+                    </md-select>
+                </md-input-container>
 
-            <md-input-container>
-                <label>Start time</label>
-                <md-select ng-model="item.cation.startTime">
-                    <md-option><em>None</em></md-option>
-                </md-select>
-            </md-input-container>
+                <md-input-container>
+                    <label>Start time</label>
+                    <input ng-model="item.caption.startTime">
+                </md-input-container>
 
-            <md-input-container>
-                <label>Duration</label>
-                <md-select ng-model="item.cation.duration">
-                    <md-option><em>None</em></md-option>
-                </md-select>
-            </md-input-container>
+                <md-input-container>
+                    <label>Duration</label>
+                    <input ng-model="item.caption.duration">
+                </md-input-container>
+            </div>
+            <div layout="row">
+                <md-button ng-class="{'md-icon-button md-accent': true, 'md-hue-3': !item.caption.bold}" aria-label="format_bold" ng-click="item.caption.bold=!item.caption.bold">
+                    <i class="material-icons">format_bold</i>
+                </md-button>
+                <md-button ng-class="{'md-icon-button md-accent': true, 'md-hue-3': !item.caption.italic}" aria-label="format_italic" ng-click="item.caption.italic=!item.caption.italic">
+                    <i class="material-icons">format_italic</i>
+                </md-button>
+            </div>
         </div>
     </md-card-content>
 </md-card>

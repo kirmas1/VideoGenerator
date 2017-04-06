@@ -41,8 +41,16 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             .state('manual', {
                 abstract: true,
                 url: '/manual',
-                templateUrl: 'pages/manual.html',
-                controller: 'manualCtrl'
+                views: {
+                    '': {
+                        templateUrl: 'pages/manual.html',
+                        controller: 'manualCtrl'
+                    },
+                    'videosHistory@': {
+                        templateUrl: 'pages/videosHistory.html',
+                        controller: 'videosHistoryCtrl'
+                    }
+                }
             })
             .state('manual.instructions', {
                 url: '',
@@ -77,58 +85,198 @@ myApp.controller('mainNavCtrl', ['$scope', '$state', function ($scope, $state) {
     }
 }]);
 
+myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoService', function ($scope, $state, $mdDialog, videoService) {
 
-myApp.controller('manualCtrl', ['$scope', '$state', 'videoService', function ($scope, $state, videoService) {
+    $scope.videoHistoryList = videoService.getVideoHistoryList();
+    
+    $scope.playVideo = function (ev, index) {
+        console.log('ev: ' + ev);
+        $mdDialog.index = index;
+        $mdDialog.show({
+                controller: VideoDialogController,
+                templateUrl: 'pages/videodialog.html',
+                //parent: angular.element(document.body),
+                targetEvent: ev,
+                clickOutsideToClose: true,
+                fullscreen: $scope.customFullscreen // Only for -xs, -sm breakpoints.
+            })
+            .then(function (answer) {}, function () {});
+    };
+
+    function VideoDialogController($scope, $mdDialog) {
+        $scope.video_src = videoService.getLink($mdDialog.index);
+        $scope.closeDialog = function () {
+            $mdDialog.hide();
+        }
+        $scope.cancel = function () {
+            $mdDialog.cancel();
+        };
+    }
+
+}]);
+
+myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
 
     $scope.selectedIndex = null;
     var uploadClicks = 0;
-    $scope.slides;
+    $scope.slides = videoService.getSlides();
 
     $scope.$watch('selectedIndex', function (newValue, oldValue) {
-        if (newValue != oldValue && newValue != null && oldValue == null)
+        if (newValue != oldValue && newValue != null && oldValue == null) {
+            console.log('Ohh ohhhhh');
             $scope.goToSlideDetails(newValue, 0);
+        }
+
     });
 
     $scope.goToSlideDetails = function (id, type) {
         $scope.selectedIndex = id;
-        console.log('goToSlideDetails, type: ' + type);
         let state = type == 0 ? 'manual.imageDetails' : 'manual.transitionDetails';
         $state.go(state, {
             id: id
         });
     }
 
+    $scope.clearList = function () {
+        videoService.clearSlidesList();
+        console.log($scope.slides);
+        $scope.slides = [];
+        $state.go('manual.instructions');
+    }
+
     $scope.uploadFile = function (event) {
         uploadClicks++;
-        if (uploadClicks == 1)
+        //        if (uploadClicks == 1)
+        //            $scope.selectedIndex = 0;
+        if ($scope.slides.length == 0)
             $scope.selectedIndex = 0;
-
         videoService.uploadEvenet(event).then(() => {
             $scope.slides = videoService.getSlides();
-            console.log('back to ctrl, $scope.slides are: ' + $scope.slides);
             $scope.$digest();
         });
 
-
     }; //end of uploadFile 
+
+    $scope.removeItem = function (index) {
+        $timeout(() => {
+            //Removing from end of the list
+            if (index == $scope.slides.length - 1) {
+                if ($scope.selectedIndex == index || $scope.selectedIndex == index - 1)
+                    $scope.selectedIndex = index - 2;
+                $scope.slides.splice(index - 1, 2);
+                $scope.goToSlideDetails(index - 2, 0);
+            }
+            //Removing from middle or first
+            else {
+                $scope.slides.splice(index, 2);
+                if ($scope.selectedIndex == index || $scope.selectedIndex == index + 1)
+                    $scope.goToSlideDetails(index, 0);
+            }
+            //Removing last one
+            if ($scope.slides.length == 0)
+                $scope.selectedIndex = null;
+        }, 300);
+
+    }
+
+    $scope.moveUpItem = function (index) {
+        $timeout(() => {
+            swipe(index, index - 2);
+            if ($scope.selectedIndex == index) {
+                $scope.selectedIndex = index - 2;
+                $scope.goToSlideDetails(index - 2, 0);
+            } else if ($scope.selectedIndex == index - 2) {
+                $scope.selectedIndex += 2;
+                $scope.goToSlideDetails(index, 0);
+            }
+        }, 500);
+
+    }
+
+    $scope.moveDownItem = function (index) {
+        $timeout(() => {
+            swipe(index, index + 2);
+            if ($scope.selectedIndex == index) {
+                $scope.selectedIndex = index + 2;
+                $scope.goToSlideDetails(index + 2, 0);
+            } else if ($scope.selectedIndex == index + 2) {
+                $scope.selectedIndex -= 2;
+                $scope.goToSlideDetails(index, 0);
+            }
+        }, 300);
+
+    }
+
+    var swipe = function (origin, dest) {
+        var temp = $scope.slides[dest];
+        $scope.slides[dest] = $scope.slides[origin];
+        $scope.slides[origin] = temp;
+    }
+
+    $scope.genrateVideo = function () {
+        videoService.generateVideo();
+    }
+
+    $scope.showConfirmGenerateVideo = function (ev) {
+        // Appending dialog to document.body to cover sidenav in docs app
+        var confirm = $mdDialog.confirm()
+            .title('Would you like to generate the video now?')
+            .textContent('Please make sure you set all your preferences.')
+            .ariaLabel('Lucky day')
+            .targetEvent(ev)
+            .ok('Please do it!')
+            .cancel('Let me check again');
+
+        $mdDialog.show(confirm).then(function () {
+            videoService.generateVideo();
+        }, function () {
+            //dismiss
+        });
+    };
 
 }]);
 
 myApp.controller('imageDetailsController', ['$scope', '$state', '$stateParams', 'videoService', function ($scope, $state, $stateParams, videoService) {
 
+    $scope.fontSizeList = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72];
+    $scope.fontList = ['Arial', 'Calibri', 'Cambria', 'Comic Sans MS', 'Georgia', 'Open Sans', 'Times New Roman'];
+
     $scope.item = videoService.getSlide($stateParams.id);
-    
+
 }])
 
 myApp.controller('transitionDetailsController', ['$scope', '$state', '$stateParams', 'videoService', function ($scope, $state, $stateParams, videoService) {
+
     $scope.item = videoService.getSlide($stateParams.id);
+
+    $scope.id = $stateParams.id / 2 + 1 / 2;
 }])
 
-myApp.service('videoService', function () {
+myApp.factory('videoService', ['$rootScope', function ($rootScope) {
+
     var video = {
-        name: 'unknown',
+        files: [],
+        name: 'Video Name here',
         slides: [] //slides includes transitions
     };
+
+    /*
+    Each object in this list should contain:
+    videoName, date, link, inProgress (T/F)
+    */
+    var historyList = [];
+
+    var getVideoHistoryList = function () {
+        return historyList;
+    }
+
+    var getLink = function (index) {
+        return historyList[index].link;
+    }
+
+    var clearSlidesList = function () {
+        video.slides = [];
+    }
 
     var readAndPreview = function (file, index) {
         return new Promise((resolve, reject) => {
@@ -142,8 +290,17 @@ myApp.service('videoService', function () {
                     video.slides.push({
                         type: 0, // 0 for image
                         fileName: file.name,
-                        file: files[index],
-                        caption: "",
+                        //                        file: files[index],
+                        caption: {
+                            text: "",
+                            font: "Arial",
+                            fontsize: 11,
+                            bold: false,
+                            italic: false,
+                            effect: 0, // 0 - None, 1 - Sliding Right, 2 - FadeInOit
+                            startTime: 0,
+                            duration: 0
+                        },
                         thumbnail: this.result,
                         zoom: {
                             enabled: true,
@@ -151,6 +308,7 @@ myApp.service('videoService', function () {
                         },
                         duration: 10
                     })
+                    video.files.push(files[index]);
                     resolve();
                 }, false);
 
@@ -180,11 +338,11 @@ myApp.service('videoService', function () {
                     type: 1, // 1 for Blend
                     fileName: 'Transition',
                     thumbnail: 'images/transition.jpg',
-                    duration:2,
-                    effect:{
+                    duration: 2,
+                    effect: {
                         //0 - blend, 1 - uncover
-                        type: "None",
-                        uncover:null //0-left, 1-right, 2-down
+                        type: 0,
+                        uncover: null //0-left, 1-right, 2-down
                     }
                 });
             }
@@ -192,28 +350,16 @@ myApp.service('videoService', function () {
         return Promise.resolve;
     };
 
-    var assignIds = function () {
-        for (let i = 0; i < video.slides.length; i++) {
-            video.slides[i].id = i;
-        }
-        return Promise.resolve();
-    };
-
     var uploadEvenet = function (event) {
         return new Promise((resolve, reject) => {
 
             files = event.target.files;
-            console.log('service uploadevent, files are: ' + files);
 
             saveAllFiles(files)
                 .then(() => {
                     return insertTransitionObjects();
                 })
                 .then(() => {
-                    return assignIds();
-                })
-                .then(() => {
-                    console.log('service uploadevent, video.slides are: ' + video.slides);
                     resolve(0);
                 });
         });
@@ -228,12 +374,78 @@ myApp.service('videoService', function () {
         return video.slides[id];
     }
 
+    var formatDate = function (date) {
+        var monthNames = [
+    "January", "February", "March",
+    "April", "May", "June", "July",
+    "August", "September", "October",
+    "November", "December"
+        ];
+
+        var day = date.getDate();
+        var monthIndex = date.getMonth();
+        var year = date.getFullYear();
+
+        return day + ' ' + monthNames[monthIndex] + ' ' + year;
+    }
+
+    var generateVideo = function () {
+
+        var m_index = historyList.push({
+            videoName: 'Unknown',
+            date: formatDate(new Date()),
+            link: '',
+            inProgress: true
+        }) - 1;
+
+        var slidesClean = [];
+
+        for (let i = 0; i < video.slides.length; i++) {
+            if (i % 2 == 0)
+                slidesClean.push(_.pick(video.slides[i], ['type', 'fileName', 'caption', 'zoom', 'duration']));
+            else
+                slidesClean.push(_.pick(video.slides[i], ['type', 'effect', 'duration']));
+        }
+
+        var dataToBackEnd = {
+            videoName: video.name,
+            slidesInfo: slidesClean
+        };
+
+        var formData = new FormData();
+        for (let i = 0; i < video.files.length; i++)
+            formData.append('images', video.files[i], video.files[i].name);
+
+
+        formData.append('info', JSON.stringify(dataToBackEnd));
+        var xhr = new XMLHttpRequest();
+
+        xhr.onreadystatechange = function () {
+
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                historyList[m_index].link = xhr.responseText;
+                historyList[m_index].inProgress = false;
+                $rootScope.$digest();
+                console.log("xhr.responseText is: " + xhr.responseText);
+            }
+        };
+
+        xhr.open("POST", "/test");
+        xhr.send(formData);
+
+    }
+
     return {
         uploadEvenet: uploadEvenet,
         getSlides: getSlides,
-        getSlide: getSlide
+        getSlide: getSlide,
+        clearSlidesList: clearSlidesList,
+        generateVideo: generateVideo,
+        getVideoHistoryList: getVideoHistoryList,
+        getLink: getLink
     };
-})
+}])
+
 
 myApp.directive('customOnChange', function () {
     return {

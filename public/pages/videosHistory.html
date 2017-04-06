@@ -1,0 +1,17 @@
+<md-card ng-repeat="video in videoHistoryList">
+    <md-card-title>
+        <md-card-title-text>
+            <span class="md-headline md-accent">{{video.videoName}}</span>
+            <span class="md-subhead">{{video.date}}</span>
+        </md-card-title-text>
+    </md-card-title>
+    <md-progress-circular ng-hide="!video.inProgress" class="md-accent" md-diameter="40"></md-progress-circular>
+    <md-card-actions layout="row" layout-align="end center">
+        <md-button ng-click="playVideo($event, $index)" ng-disabled="video.inProgress" class="md-accent">Watch</md-button>
+    </md-card-actions>
+
+</md-card>
+
+
+
+

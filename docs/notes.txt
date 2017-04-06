@@ -38,6 +38,85 @@ From code: 0.1 - 0.17 seconds.
 
 The code calc is: Math.round(Math.random() * (100 - 30)) + this.typeSpeed;
 
+////////////////////////////////////////////////////////////////////////////////////////////
+
+1/4/2017 - Big change
+---------------------
+
+The client sends to server this: 
+
+formData that includes: 
+1. list of files
+2. Data (json)
+
+************* About the Data *************
+{
+	videoName: 'video name',
+        slidesInfo: []
+}
+
+slidesInfo is an array ordered as the slides should be. like, Slide1 - Transition1 - Slide2 - Transition2 - Slide3..
+Each element in the array is Object including those fields:
+
+For Image info Object:
+----------------------
+
+{
+	type: 0,
+	fileName: 'fileName',
+	caption: {
+		   text: 'text',
+		   font: 'fontName',
+		   fontsize: size(Number),
+		   bold: boolean,
+		   italic: boolean,
+		   effect: 'EffectName,
+		   startTime: startTime(Number),
+		   duration: duration(Number)
+		 }
+	zoom: {
+		enabled: boolean,
+		style: 0-zoom to center OR 1-zoom to random place near center
+	      }
+	duration: duration(Number)
+}
+
+For Transition info Object:
+---------------------------
+
+{
+	type: 1,
+	duration: duration(Number),
+	effect: {
+		 type: 'type', //-1 = None, 0 = blend, 1 = uncover
+		uncover: 0-left, 1-right, 2-down
+		}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
  

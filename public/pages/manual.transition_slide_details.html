@@ -1,6 +1,6 @@
 <md-card flex>
     <div layout="row" layout-align="center center">
-        <h1 class="md-headline">Transition {{item.id}}</h1>
+        <h1 class="md-headline">Transition {{id}}</h1>
     </div>
     <md-card-content flex layout="column" layout-align="space-around none">
 
@@ -21,15 +21,15 @@
                 <md-input-container style="margin-right: 10px;">
                     <label>Style</label>
                     <md-select ng-model="item.effect.type">
-                        <md-option value="None"><em>None</em></md-option>
-                        <md-option value="Blend"><em>Blend</em></md-option>
-                        <md-option value="Unconver"><em>Unconver</em></md-option>
+                        <md-option value="-1"><em>None</em></md-option>
+                        <md-option value="0"><em>Blend</em></md-option>
+                        <md-option value="1"><em>Unconver</em></md-option>
                     </md-select>
                 </md-input-container>
 
                 <md-input-container>
                     <label>Direction</label>
-                    <md-select ng-disabled="item.effect.type!='Unconver'" ng-model="item.cation.fontsize">
+                    <md-select ng-show="item.effect.type=='Unconver'" ng-model="item.cation.fontsize">
                         <md-option value="Left"><em>Left</em></md-option>
                         <md-option value="Right"><em>Right</em></md-option>
                         <md-option value="Down"><em>Down</em></md-option>
