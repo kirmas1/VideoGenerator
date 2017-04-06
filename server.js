@@ -1,16 +1,14 @@
-'use strict'
-
 var express = require('express');
 var app = express();
 var multer = require('multer');
 var path = require('path');
 var fs = require('fs');
-const exec = require('child_process').exec;
-const util = require('util');
+var exec = require('child_process').exec;
+var util = require('util');
 var formidable = require('formidable');
 var shortid = require('shortid');
-const execFile = require('child_process').execFile;
-const ffmpeg = require('./ffmpeg');
+var execFile = require('child_process').execFile;
+var ffmpeg = require('./ffmpeg');
 var os = require("os");
 
 app.use(express.static(path.join(__dirname, 'public')));

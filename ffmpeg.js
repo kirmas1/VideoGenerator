@@ -1,10 +1,8 @@
-'use strict'
-
-const execFile = require('child_process').execFile;
+var execFile = require('child_process').execFile;
 var _ = require('lodash');
 var fs = require('fs');
 var os = require("os");
-const util = require('util');
+var util = require('util');
 
 var me = function () {
 
@@ -33,8 +31,8 @@ var me = function () {
             var scale_requests = images.map(function (ele, index) {
                 return new Promise(function (resolve) {
 
-                    let filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
-                    let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg'], (error, stdout, stderr) => {
+                    var filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
+                    var child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\' + ele.fileName, '-vf', filter, '\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -48,8 +46,8 @@ var me = function () {
         var padPromise = function () {
             var pad_requests = images.map(function (ele, index) {
                 return new Promise(function (resolve) {
-                    let filter = 'pad=1280:720:(ow-iw)/2:(oh-ih)/2';
-                    let child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg', '-vf', filter, '\workshop\\' + newFolderName + '\\scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
+                    var filter = 'pad=1280:720:(ow-iw)/2:(oh-ih)/2';
+                    var child = execFile('ffmpeg', ['-i', '\workshop\\' + newFolderName + '\\scaled_' + index + '.jpg', '-vf', filter, '\workshop\\' + newFolderName + '\\scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -159,7 +157,7 @@ var me = function () {
                         })
                         break;
                     case 1:
-                        let _options = {
+                        var _options = {
                             font_file: fontPath(ele.caption.font, ele.caption.bold, ele.caption.italic),
                             font_size: Number(ele.caption.fontsize),
                             font_color: 'white',
@@ -185,7 +183,7 @@ var me = function () {
                         console.log('---------------------------------------');
                         console.log('---------------------------------------');
                         console.log('---------------------------------------');
-                        let case_2_options = {
+                        var case_2_options = {
                             font_file: fontPath(ele.caption.font, ele.caption.bold, ele.caption.italic),
                             font_size: Number(ele.caption.fontsize),
                             font_color: 'white',
@@ -307,7 +305,7 @@ var me = function () {
         var concatAllPromise = function () {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
-                    const child = execFile('ffmpeg', ['-f', "concat", '-safe', '0', '-i', 'workshop\\' + newFolderName + '\\files_to_concat.txt', '-c', 'copy', 'workshop\\' + newFolderName + '\\final_' + newFolderName + '.mp4'], (error, stdout, stderr) => {
+                    var child = execFile('ffmpeg', ['-f', "concat", '-safe', '0', '-i', 'workshop\\' + newFolderName + '\\files_to_concat.txt', '-c', 'copy', 'workshop\\' + newFolderName + '\\final_' + newFolderName + '.mp4'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -381,7 +379,7 @@ var me = function () {
     var createZoomInEffectVideo = function (path_to_image, image_width, image_height, duration, path_to_output) {
         console.log('createZoomInEffectVideo for: ' + path_to_image);
         return new Promise((resolve, reject) => {
-            let filter = '[0:v]scale=' + image_width * 6 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
+            var filter = '[0:v]scale=' + image_width * 6 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
 
             execFile('ffmpeg', ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 console.log('finished ' + ' createZoomInEffectVideo for: ' + path_to_image);
@@ -399,7 +397,7 @@ var me = function () {
     var createZoomInEffectVideoNearCenter = function (path_to_image, image_width, image_height, duration, path_to_output) {
         console.log('createZoomInEffectVideoNearCenter for: ' + path_to_image);
         return new Promise((resolve, reject) => {
-            let filter = '[0:v]scale=' + image_width * 4 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'if(gte(zoom,1.5),x,x+1/a)\':y=\'if(gte(zoom,1.5),y,y+1)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
+            var filter = '[0:v]scale=' + image_width * 4 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'if(gte(zoom,1.5),x,x+1/a)\':y=\'if(gte(zoom,1.5),y,y+1)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
 
             execFile('ffmpeg', ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 console.log('finished ' + ' createZoomInEffectVideoNearCenter for: ' + path_to_image);
@@ -559,7 +557,7 @@ var me = function () {
         if (options.x == 'center') options.x = '(w-text_w)/2';
         if (options.y == 'center') options.y = '(h-text_h)/2';
         return new Promise((res, rej) => {
-            let arguments = ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path];
+            var arguments = ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path];
 
             console.log(arguments);
             execFile('ffmpeg', ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
