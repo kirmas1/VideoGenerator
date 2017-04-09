@@ -29,10 +29,10 @@
 
                 <md-input-container>
                     <label>Direction</label>
-                    <md-select ng-show="item.effect.type=='Unconver'" ng-model="item.cation.fontsize">
-                        <md-option value="Left"><em>Left</em></md-option>
-                        <md-option value="Right"><em>Right</em></md-option>
-                        <md-option value="Down"><em>Down</em></md-option>
+                    <md-select ng-show="item.effect.type==1" ng-model="item.cation.fontsize">
+                        <md-option value="0"><em>Left</em></md-option>
+                        <md-option value="1"><em>Right</em></md-option>
+                        <md-option value="2"><em>Down</em></md-option>
                     </md-select>
                 </md-input-container>
             </div>
