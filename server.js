@@ -42,6 +42,10 @@ app.post('/test', function (req, res) {
     form.uploadDir = './workshop/' + newFolderName;
 
     form.on('file', function (name, file) {
+        console.log('+++----+++');
+        console.log('file.path is: ' + file.path);
+        console.log('file.name is: ' + file.name);
+        console.log('+++----+++');
         fs.rename(file.path, form.uploadDir + "/" + file.name);
     });
     form.on('field', function (name, value) {
