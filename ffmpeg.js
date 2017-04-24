@@ -3,7 +3,6 @@ var fs = require('fs');
 var os = require("os");
 var util = require('util');
 var configuration = require('./configuration');
-
 var ffmpeg = configuration.FFMPEG_PATH;
 
 
@@ -617,7 +616,35 @@ var me = function () {
         });
     }
 
+    /*
+    Input: path the video file, path to audio file
+    options: {
+        startAt: number //where to start the overlay
+        output: path/to/output
+    }
+    
+    Return Pormise
+    */
+    /*
+    ffmpeg -i input.mp4 -i input.mp3 -f lavfi -t 2 -i anullsrc 
+-filter_complex "[2:a][1:a]concat=n=2:v=0:a=1[a0];[a0]apad[a]" -map 0:v -map [a] -shortest -y output.mp4
+*/
+    var overlayAudioToVideo = function(video, audio, options) {
+        return new Promise((resolve, reject) =>{
+            execFile(ffmpeg,['-i', video, '-i', audio, '-f', 'lavfi', '-t', options.startAt, '-i', 'anullsrc', '-filter_complex', "[2:a][1:a]concat=n=2:v=0:a=1[a0];[a0]apad[a]", '-map', '0:v', '-map', '[a]', '-shortest', '-y', options.output], (err, stdout, stdin)=>{
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                }
+                console.log(stdout);
+            }).on('exit', (code, signal) => {
+                resolve(0);
+            });
+        });
+    }
+    
     return {
+        overlayAudioToVideo: overlayAudioToVideo,
         createZoomInEffectVideo: createZoomInEffectVideo,
         createZoomInEffectVideoNearCenter: createZoomInEffectVideoNearCenter,
         captureLastFrame: captureLastFrame,
