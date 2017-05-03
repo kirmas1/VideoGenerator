@@ -17,9 +17,9 @@ var me = function () {
     var createCustom = function (details, newFolderName) {
 
         console.log('Let\'s start create cusstom!');
-        
+
         var workshop = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
-        
+
         //slidesInfo include images and transitions, lets split them
         images = [];
         transitions = [];
@@ -81,14 +81,29 @@ var me = function () {
             return Promise.all(zoom_requests);
         }
 
+        /*
+         */
         var createCaptionFiles = function () {
 
             var p = images.map((ele, index) => {
 
                 return new Promise((res, rej) => {
-                    fs.writeFile(`${workshop}/caption_${index}.txt`, '       ' + ele.caption.text, (err) => {
-                        res(0);
-                    })
+                    console.log('ffmpeg::createCaptionFiles::ele.caption.text is: ' + ele.caption.text);
+                    switch (ele.caption.effect) {
+                        case 1:  //sliding from left. The ele.caption.text should be ready with new lines so we need to add white spaces only.
+                            var str = '       ' + ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n       ");
+                            
+                            fs.writeFile(`${workshop}/caption_${index}.txt`, str, (err) => {
+                                res(0);
+                            })
+                            break;
+                        default:
+                            fs.writeFile(`${workshop}/caption_${index}.txt`, ele.caption.text, (err) => {
+                                res(0);
+                            })
+                            break;
+                    }
+
                 });
 
             });
@@ -145,7 +160,6 @@ var me = function () {
 
         var drawTextPromise = function () {
             var t = images.map((ele, index) => {
-                //                console.log('ele.caption.effect: ' + ele.caption.effect + 'index: ' + index);
 
                 switch (Number(ele.caption.effect)) {
                     case 0:
@@ -159,7 +173,7 @@ var me = function () {
                             x: '(w-text_w)/2',
                             y: 'h-4*line_h',
                             text_file: `${workshop}/caption_${index}.txt`
-                        })
+                        });
                         break;
                     case 1:
                         var _options = {
@@ -172,7 +186,6 @@ var me = function () {
                             box_opacity: 0.7,
                             text_file: `${workshop}/caption_${index}.txt`
                         };
-                        //                        console.log('options for drawTextSliding' + util.inspect(_options));
                         return drawTextSlidingFromLeftToRight(`${workshop}/zoomeffect_${index}.mp4`, `${workshop}/zt_${index}.mp4`, _options);
                         break;
                     case 2:
@@ -185,15 +198,15 @@ var me = function () {
                             box_color: 'black',
                             box_opacity: 0.7,
                             text_file: `${workshop}/caption_${index}.txt`,
-                            x: 'center',
-                            y: 'center',
+                            x: ele.caption.x || 'center',
+                            y: ele.caption.y || 'center',
                             fade_in_start_time: Number(ele.caption.startTime),
                             fade_in_duration: 1,
                             fade_out_duration: 1,
                             fade_out_end_time: Number(ele.caption.startTime) + 1 + Number(ele.caption.duration) + 1
                         };
-                        console.log('options for drawTextFadeInOutEffect' + util.inspect(case_2_options))
-                        return drawTextFadeInOutEffect(`${workshop}/zoomeffect_${index}.mp4`, `${workshop}/zt_${index}.mp4`, case_2_options)
+                        console.log('options for drawTextFadeInOutEffect' + util.inspect(case_2_options));
+                        return drawTextFadeInOutEffect(`${workshop}/zoomeffect_${index}.mp4`, `${workshop}/zt_${index}.mp4`, case_2_options);
                         break;
                     default:
                         return Promise.reslove;
@@ -205,6 +218,7 @@ var me = function () {
         var createTransition = function () {
 
             var firstStep = function () {
+                console.log('ffmpeg::createTransition:: transition First step starting');
                 var p = transitions.map((ele, index) => {
                     return createVideoFromImage(`${workshop}/scaled_padded${index+1}.jpg`, ele.duration, `${workshop}/p${index}.mp4`);
                 });
@@ -212,6 +226,7 @@ var me = function () {
             };
 
             var secondStep = function () {
+                console.log('ffmpeg::createTransition:: transition second Step starting');
                 var lf = transitions.map((ele, index) => {
                     return captureLastFrame(`${workshop}/zt_${index}.mp4`, images[index].duration, `${workshop}/lf${index}.jpg`);
                 });
@@ -219,6 +234,7 @@ var me = function () {
             };
 
             var thirdStep = function () {
+                console.log('ffmpeg::createTransition:: transition Third step starting');
                 var lfv = transitions.map((ele, index) => {
                     return createVideoFromImage(`${workshop}/lf${index}.jpg`, ele.duration, `${workshop}/lfv${index}.mp4`);
                 });
@@ -226,7 +242,7 @@ var me = function () {
             };
 
             var fourthStep = function () {
-                console.log('transition Fourth step');
+                console.log('transition Fourth step starting');
                 var transitionsRequest = transitions.map((ele, index) => {
                     console.log(`Transition ${index} is ${ele.effect.type}`);
                     switch (Number(ele.effect.type)) {
@@ -240,7 +256,7 @@ var me = function () {
                                     return createUncoverLeftTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
                                     break;
                                 case 1:
-                                    return createUncoverRightTransition(`${workshop}/lfv${index}.mp4`, `.\workshop/${newFolderName}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
+                                    return createUncoverRightTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/${newFolderName}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
                                     break;
                                 case 2:
                                     return createUncoverDownTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
@@ -279,7 +295,7 @@ var me = function () {
         }
 
         var writeConcatTextFilePromise = function () {
-            
+
             var prefix = configuration.OS == 'win' ? '' : "'./workshop/" + newFolderName + '/';
             return new Promise((resolve, reject) => {
                 var file_content = '';
@@ -291,7 +307,7 @@ var me = function () {
                     }
                 }
                 fs.writeFile(`${workshop}/files_to_concat.txt`, file_content, (err) => {
-                    console.log('finish writing txt file');
+                    console.log('ffmpeg::writeConcatTextFilePromise:: finish writing txt file');
                     resolve(0);
                 })
             });
@@ -498,8 +514,24 @@ var me = function () {
     }
 
     /*
+options: font_color, font_file, text_file
+*/
+    var drawHeadLine = function (path_to_video, path_to_output, options) {
+        return new Promise((resolve, reject) => {
+            execFile(ffmpeg, ['-i', path_to_video, '-vf', `drawtext=fontsize=100:fontcolor=${options.font_color}@1:fontfile=${options.font_file}:textfile=${options.text_file}:x=(w-text_w)/2:y=(h-text_h)/3`, path_to_output], (err, stdout, stderr) => {
+                if (err) {
+                    console.log(err);
+                }
+            }).on('exit', (code, signal) => {
+                resolve(0);
+            });
+
+        });
+    }
+
+    /*
      *Draw the text on the video without any effects
-     *Options can include: start_time, duration, font_file, font_size, font_color, box (1/0), box_color, box_opacity, x, y *positions, text_file
+     *Options can include: start_time, font_file, font_size, font_color, box (1/0), box_color, box_opacity, x, y *positions, text_file
      */
     var drawTextNoEffects = function (path_to_video, path_to_output, options) {
         //TODO: set undefined options
@@ -541,22 +573,26 @@ var me = function () {
     x, y (can be 'center')
     */
 
-
     /*
-                                fade_in_start_time: ele.caption.startTime,
-                            fade_in_duration: 1,
-                            fade_out_duration: 1,
-                            fade_out_end_time: ele.duration - (ele.caption.startTime + ele.caption.duration)
-                            */
+    fade_in_start_time: ele.caption.startTime,
+    fade_in_duration: 1,
+    fade_out_duration: 1,
+    fade_out_end_time: ele.duration - (ele.caption.startTime + ele.caption.duration)
+    
+    At this moment drawTextFadeInOutEffect supports only black or white colors.
+    */
     var drawTextFadeInOutEffect = function (video_path, output_path, options) {
         //x=(w-text_w)/2:y=(h-text_h)/2
-        if (options.x == 'center') options.x = '(w-text_w)/2';
-        if (options.y == 'center') options.y = '(h-text_h)/2';
+        if (options.x === 'center') options.x = '(w-text_w)/2';
+        if (options.y === 'center') options.y = '(h-text_h)/2';
+        var color = 'black';
+        if (options.font_color === 'white') color = 'ffffff';
+        if (options.font_color === 'black') color = '000000';
         return new Promise((res, rej) => {
-            var arguments = ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path];
+            var arguments = ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=${color}%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path];
 
             console.log(arguments);
-            execFile(ffmpeg, ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=000000%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
+            execFile(ffmpeg, ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=${color}%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
                 if (err) {
                     console.log(err);
                 }
@@ -629,9 +665,9 @@ var me = function () {
     ffmpeg -i input.mp4 -i input.mp3 -f lavfi -t 2 -i anullsrc 
 -filter_complex "[2:a][1:a]concat=n=2:v=0:a=1[a0];[a0]apad[a]" -map 0:v -map [a] -shortest -y output.mp4
 */
-    var overlayAudioToVideo = function(video, audio, options) {
-        return new Promise((resolve, reject) =>{
-            execFile(ffmpeg,['-i', video, '-i', audio, '-f', 'lavfi', '-t', options.startAt, '-i', 'anullsrc', '-filter_complex', "[2:a][1:a]concat=n=2:v=0:a=1[a0];[a0]apad[a]", '-map', '0:v', '-map', '[a]', '-shortest', '-y', options.output], (err, stdout, stdin)=>{
+    var overlayAudioToVideo = function (video, audio, options) {
+        return new Promise((resolve, reject) => {
+            execFile(ffmpeg, ['-i', video, '-i', audio, '-f', 'lavfi', '-t', options.startAt, '-i', 'anullsrc', '-filter_complex', "[2:a][1:a]concat=n=2:v=0:a=1[a0];[a0]apad[a]", '-map', '0:v', '-map', '[a]', '-shortest', '-y', options.output], (err, stdout, stdin) => {
                 if (err) {
                     console.log(err);
                     reject(err);
@@ -642,7 +678,7 @@ var me = function () {
             });
         });
     }
-    
+
     return {
         overlayAudioToVideo: overlayAudioToVideo,
         createZoomInEffectVideo: createZoomInEffectVideo,
@@ -657,7 +693,8 @@ var me = function () {
         createUncoverLeftTransition: createUncoverLeftTransition,
         createUncoverRightTransition: createUncoverRightTransition,
         createUncoverDownTransition: createUncoverDownTransition,
-        createCustom: createCustom
+        createCustom: createCustom,
+        drawHeadLine: drawHeadLine
     }
 }
 
