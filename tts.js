@@ -17,11 +17,11 @@ var me = function () {
             var params = {
                 'Text': item.text,
                 'OutputFormat': 'mp3',
-//                'OutputFormat': 'json',
-//                'SpeechMarkTypes': ["sentence", "word"],
+                //                'OutputFormat': 'json',
+                //                'SpeechMarkTypes': ["sentence", "word"],
                 'VoiceId': item.voiceId || 'Kimberly'
             };
-            
+
             return new Promise((resolve, reject) => {
                 polly.synthesizeSpeech(params, (err, data) => {
                     if (err) {
@@ -39,13 +39,13 @@ var me = function () {
                 });
             });
         }
-        /*
-            synthesize function.
-            Input: options object in this form
-                {
-                    items: [list of items]
-                }
-                Each item should be 
+    /*
+        synthesize function.
+        Input: options object in this form
+        {
+            items: [list of items]
+        }
+        Each item should be 
                     {
                         text: "text to synthesize",
                         voiceId: voiceId || null
@@ -60,7 +60,7 @@ var me = function () {
                         code: 0 / 1 (success/failure),
                         message: null / "err message"
                     }
-        */
+    */
     var synthesize = function (options) {
 
         var p = options.items.map((ele, index) => {
