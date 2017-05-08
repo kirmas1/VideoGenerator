@@ -140,7 +140,9 @@ module.exports = {
                             //Lets shuffle (excluding first one )
                             for (var i = randomLinks.length - 1; i > 0; i--) {
                                 var j = Math.floor(Math.random() * i + 1);
-                                [randomLinks[i], randomLinks[j]] = [randomLinks[j], randomLinks[i]];
+                                var temp = randomLinks[i];
+                                randomLinks[i] = randomLinks[j];
+                                randomLinks[j] = temp;
                             }
 
                             console.log('cars-db:: getCarPictures:: After Shuffle, randomLinks are: ' + util.inspect(randomLinks));
