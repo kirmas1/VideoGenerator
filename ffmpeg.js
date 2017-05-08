@@ -227,7 +227,7 @@ var me = function () {
 
                 if (ele.tts === false || ele.tts === undefined) return Promise.resolve(0);
 
-                let _options = {
+                var _options = {
                     startAt: ele.caption.startTime + 1,
                     output: `${workshop}/zts_${index}.mp4`
                 }
@@ -633,7 +633,7 @@ var me = function () {
                 // Create the effect. 
                 return new Promise((res, rej) => {
 
-                    let y = generateY(options.font_size, options.block_displays_t, options.block_h);
+                    var y = generateY(options.font_size, options.block_displays_t, options.block_h);
 
                     execFile(ffmpeg, ['-i', black_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:fontfile=${options.font_file}:textfile=${options.text_file}:y=${y}`, `${temp_workshop}/text_on_transparent.mp4`], (err, stdout, stderr) => {
                         if (err) {
@@ -675,10 +675,10 @@ var me = function () {
 
         function generateY(font_size, block_displays_t, block_h) {
 
-            let y = '';
+            var y = '';
             if (block_h === 2) font_size = font_size * 2;
 
-            for (let i = 0; i <= 2 * block_displays_t.length; i++) {
+            for (var i = 0; i <= 2 * block_displays_t.length; i++) {
 
                 if (i === 0)
 
@@ -690,7 +690,7 @@ var me = function () {
 
                         y += `h-${4 * font_size}*(t-${special_sum(i)})`;
 
-                        for (let n = 0; n < i; n++)
+                        for (var n = 0; n < i; n++)
                             y += ')';
                     } else
                         y += `if(between(t\\,${i/4 + special_sum(i)}\\,${i/4 + special_sum(i) + 0.5})\\,h-${4 * font_size}*(t-${special_sum(i)})\\,`;
@@ -704,8 +704,8 @@ var me = function () {
             return y;
 
             function special_sum(num) {
-                let sum = 0;
-                for (let k = 0; k <= num / 2 - 1; k++)
+                var sum = 0;
+                for (var k = 0; k <= num / 2 - 1; k++)
                     sum += block_displays_t[k];
                 return sum;
             }
@@ -713,7 +713,7 @@ var me = function () {
 
         function just_sum() {
             var _sum = 0;
-            for (let i = 0; i < options.block_displays_t.length; i++)
+            for (var i = 0; i < options.block_displays_t.length; i++)
                 _sum += options.block_displays_t[i];
             return _sum;
         };
