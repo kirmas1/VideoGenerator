@@ -35,7 +35,7 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             });
 
         // Use $urlRouterProvider to configure any redirects (when) and invalid urls (otherwise).
-        $urlRouterProvider.otherwise('/manual');
+        $urlRouterProvider.otherwise('/automatic');
 
         $stateProvider
             .state('manual', {
@@ -68,17 +68,21 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             })
             .state('automatic', {
                 url: '/automatic',
-                templateUrl: 'pages/automatic.html',
-                controller: ['$scope', '$state',
-                function ($scope, $state) {
-                        console.log("state = automatic");
-                }]
+                views: {
+                    '': {
+                        templateUrl: 'pages/automatic.html',
+                        controller: 'automaticCtrl'
+                    },
+                    'videosHistory@': {
+                        templateUrl: 'pages/videosHistory.html',
+                        controller: 'videosHistoryCtrl'
+                    }
+                }
             })
-
   }]);
 
 myApp.controller('mainNavCtrl', ['$scope', '$state', function ($scope, $state) {
-    $scope.currentNavItem = 'Manual';
+    $scope.currentNavItem = 'Automatic';
     $scope._goto = function (state) {
         console.log('mainNavCtrl acitve');
         $state.go(state);
@@ -88,7 +92,7 @@ myApp.controller('mainNavCtrl', ['$scope', '$state', function ($scope, $state) {
 myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoService', function ($scope, $state, $mdDialog, videoService) {
 
     $scope.videoHistoryList = videoService.getVideoHistoryList();
-    
+
     $scope.playVideo = function (ev, index) {
         console.log('ev: ' + ev);
         $mdDialog.index = index;
@@ -113,6 +117,16 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
         };
     }
 
+}]);
+
+myApp.controller('automaticCtrl', ['$scope', 'videoService', function ($scope, videoService) {
+    console.log(`automaticCtrl`);
+
+    $scope.phrase = '';
+    $scope.generateAutomticVideo = function () {
+            console.log(`automaticCtrl::genrateAutomaticVideo`);
+            videoService.generateAutomticVideo($scope.phrase);
+        }
 }]);
 
 myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
@@ -282,7 +296,8 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         return new Promise((resolve, reject) => {
             // Make sure `file.name` matches our extensions criteria
             if (/\.(jpe?g|png|gif)$/i.test(file.name)) {
-
+                console.log('fileNmae is: ' + file.name);
+                console.log('-------');
                 var reader = new FileReader();
 
                 reader.addEventListener("load", function () {
@@ -389,6 +404,32 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         return day + ' ' + monthNames[monthIndex] + ' ' + year;
     }
 
+    var generateAutomticVideo = function (phrase) {
+
+        var m_index = historyList.push({
+            videoName: 'Automatic',
+            date: formatDate(new Date()),
+            link: '',
+            inProgress: true
+        }) - 1;
+        
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                historyList[m_index].link = xhr.responseText;
+                historyList[m_index].inProgress = false;
+                $rootScope.$digest();
+                console.log("xhr.responseText is: " + xhr.responseText);
+            }
+        };
+
+        xhr.open("GET", `/autogen/?q=${phrase}`);
+        xhr.send({
+            phrase: "123test"
+        });
+    }
+
     var generateVideo = function () {
 
         var m_index = historyList.push({
@@ -423,6 +464,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         xhr.onreadystatechange = function () {
 
             if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                console.log('-----mmmmm------client2');
                 historyList[m_index].link = xhr.responseText;
                 historyList[m_index].inProgress = false;
                 $rootScope.$digest();
@@ -432,6 +474,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
         xhr.open("POST", "/test");
         xhr.send(formData);
+        console.log('-----mmmmm------client1');
 
     }
 
@@ -441,6 +484,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         getSlide: getSlide,
         clearSlidesList: clearSlidesList,
         generateVideo: generateVideo,
+        generateAutomticVideo: generateAutomticVideo,
         getVideoHistoryList: getVideoHistoryList,
         getLink: getLink
     };

@@ -15,9 +15,10 @@ function Car(model_make, model_name, model_year) {
     this.model_make = model_make;
     this.model_name = model_name;
     this.model_year = model_year;
+    this.allTexts = [];
     console.log('Car Ctor');
     return new Promise((resolve, reject) => {
-        
+
         db.getCarSpecs(this).then((specs) => {
             this.specs = specs;
             console.log('db.getCarSpecs success')
@@ -38,7 +39,7 @@ Car.prototype.generateFirstSentence = function () {
 
     if (this.isStartingWithVowel(this.specs.model_drive)) a_an_model_drive = 'An';
 
-    return `${a_an_model_drive} ${this.specs.model_drive} ${this.specs.model_transmission_type} ${this.specs.model_body}`;
+    this.allTexts.push({text:`${a_an_model_drive} ${this.specs.model_drive} ${this.specs.model_transmission_type} ${this.specs.model_body}`});
 }
 
 Car.prototype.generateSecondSentence = function () {
@@ -58,9 +59,9 @@ Car.prototype.generateSecondSentence = function () {
     if (this.isStartingWithVowel(synonym1)) a_an_synonym1 = 'an';
     if (this.isStartingWithVowel(synonym3)) a_an_synonym3 = 'an';
 
-    return `With ${a_an_synonym1} ${synonym1} ${this.specs.model_engine_cc} cc engine,
+    this.allTexts.push({text:`With ${a_an_synonym1} ${synonym1} ${this.specs.model_engine_cc} cc engine,
 ${synonym2} ${a_an_synonym3} ${synonym3} ${this.specs.model_engine_power_ps} HP,
-${synonym4} ${this.specs.model_engine_torque_nm} NM of torque`;
+${synonym4} ${this.specs.model_engine_torque_nm} NM of torque`});
 }
 
 Car.prototype.generateThirdSentence = function () {
@@ -68,9 +69,16 @@ Car.prototype.generateThirdSentence = function () {
     //    var synonym5 = 'An avergae fuel consumption of';
     var synonym5 = getSynonym(5);
 
-    return `${synonym5}
+    this.allTexts.push({text:`${synonym5}
 ${Math.floor(100 / this.specs.model_lkm_mixed)} KM per Liter
-- Or ${Math.floor(100 / this.specs.model_lkm_mixed * 2.35214583)} Miles Per gallon`;
+- Or ${Math.floor(100 / this.specs.model_lkm_mixed * 2.35214583)} Miles Per gallon`});
+}
+
+Car.prototype.generateAllTexts = function () {
+    this.generateFirstSentence();
+    this.generateSecondSentence();
+    this.generateThirdSentence();
+    return this.allTexts;
 }
 
 module.exports = Car;

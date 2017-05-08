@@ -10,6 +10,8 @@ var shortid = require('shortid');
 var execFile = require('child_process').execFile;
 var ffmpeg = require('./ffmpeg');
 var os = require("os");
+var url = require('url');
+var automatic = require('./automatic');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -30,6 +32,7 @@ var upload = multer({
 })
 
 app.post('/test', function (req, res) {
+    console.log('-----mmmmm------server');
     var form = new formidable.IncomingForm();
     var newFolderName = shortid.generate();
     var data;
@@ -65,22 +68,18 @@ app.post('/test', function (req, res) {
     });
 })
 
+app.get('/autogen', function(req, res){
 
-/*
-Creating a folder under /uploads to contain to files. The folder name will be the current date
-to do so we'll add id to the req and pass it to multer to save the files. than we need to start proccess the video !!!
-*/
-app.post('/generate', function (req, res, next) {
-        req.id = Date.now();
-        next();
-    }, upload.array('images', 12),
-    function (req, res) {
-        res.end("/uploads/" + req.id);
-    })
+    var url_parts = url.parse(req.url,true);
+        console.log('app.get::url_parts.query:: ' + util.inspect(url_parts.query));
+    
+    automatic.generate(url_parts.query.q)
+        .then((result) => {
+        res.end(result);
+    });
+    
+})
 
-//app.get('*', function (req, res) {
-//    res.sendFile(path.join(__dirname, 'views/index.html'));
-//});
 app.get('*', function (req, res) {
     res.sendFile(path.join(__dirname, 'index.html'));
 });

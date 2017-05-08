@@ -151,9 +151,9 @@ module.exports = {
                                         Bucket: carsPicturesBucket,
                                         Key: _link
                                     };
-                                    console.log('cars-db:: getCarPictures:: creating writeStream to: ' + options.path + index + '.jpg');
+                                    console.log('cars-db:: getCarPictures:: creating writeStream to: ' + `${options.path}/${index}.jpg`);
 
-                                    var file = fs.createWriteStream(options.path + index + '.jpg');
+                                    var file = fs.createWriteStream(`${options.path}/${index}.jpg`);
                                     s3.getObject(params)
                                         .createReadStream()
                                         .pipe(file)

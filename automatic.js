@@ -4,41 +4,78 @@ var db = require('./cars-db');
 var Car = require('./car');
 var ffmpeg = require('./ffmpeg');
 var util = require('util');
+var tts = require('./tts');
+var configuration = require('./configuration');
+var mp3Duration = require('mp3-duration');
 
 
+function generate(phrase) {
+    
+    //return Promise.resolve('videos/final_By6v01RJW.mp4');
+        //TO DO
+    var topic = {
+        model_make : 'BMW',
+        model_name: 'M4', 
+        model_year: 2017
+    };
+    
+    return new Promise((resolve, reject) => {
 
+        Promise.resolve()
+        .then(res => {
+            return prepare(topic)
+        })
+        .then(res => {
+            return ffmpeg.createCustom(res.d, res.nf)
+        })
+        .then(res => {
+            resolve(res);
+        })
+    })
+}
 /*
 This function should be responsible to get topic as input and set the ground for ffmpeg.generateCustom
 */
 function prepare(topic) {
-
+               
     var new_folder = createNewWorkShopFolder();
 
+    var workshop = configuration.OS == 'linux' ? `./workshop/${new_folder}` : `workshop/${new_folder}`;
+
     return new Promise((resolve, reject) => {
-        createCar(topic)
-            .then((car) => {
-                console.log('automatic:: prepare:: Car object is ready, trying to get images');
-                console.log('automatic:: prepare:: car is: ' + util.inspect(car));
-                return new Promise((resolve, reject) => {
-                    db.getCarPictures(car, {
-                            total_count: 4,
-                            interior_count: 1,
-                            exterior_count: 3,
-                            engine_count: 0,
-                            path: `./workshop/${new_folder}/`
-                        })
-                        .then(() => resolve(car))
-                        .catch((err) => reject(err));
-                });
-            })
-            .then((car) => {
-                return createDataObject(car); //for ffmpeg
-            })
-            .then((details_for_ffmpeg) => {
+
+        Promise.resolve()
+
+        .then(res => {
+
+            return createCar(topic)
+        })
+
+        .then((car) => {
+
+            return getCarImages(car, workshop);
+
+        })
+
+        .then((car) => {
+
+            return generateTTsAndSetCaptions(car, workshop);
+
+        })
+
+        .then((car) => {
+
+            return createDataObject(car, workshop); //for ffmpeg
+
+        })
+
+        .then((details_for_ffmpeg) => {
+
                 resolve({
                     d: details_for_ffmpeg,
                     nf: new_folder
                 });
+
             })
             .catch((err) => {
                 console.log(err);
@@ -47,10 +84,67 @@ function prepare(topic) {
     });
 }
 
+function getCarImages(car, workshop) {
+    console.log('automatic:: getCarImages:: car is: ' + util.inspect(car));
+    return new Promise((resolve, reject) => {
+        db.getCarPictures(car, {
+                total_count: 4,
+                interior_count: 1,
+                exterior_count: 3,
+                engine_count: 0,
+                path: workshop
+            })
+            .then(() => resolve(car))
+            .catch((err) => reject(err));
+    });
+}
+
+function generateTTsAndSetCaptions(car, workshop) {
+
+    console.log('automatic:: prepare:: Lets run tts');
+
+    let allTexts = car.generateAllTexts();
+
+    console.log(`automatic::prepare::allTexts: ${util.inspect(allTexts)}`);
+
+    let tts_options = allTexts.map((item, index) => {
+        return {
+            text: item.text,
+            voiceId: null,
+            path: `${workshop}/${index}.mp3`
+        };
+    });
+
+    return new Promise((resolve, reject) => {
+        tts.synthesize({
+                items: tts_options
+            })
+            .then(response => {
+
+                var _map = tts_options.map((ele, index) => {
+                    return new Promise((res, rej) => {
+                        mp3Duration(ele.path, function (err, duration) {
+                            if (err) {
+                                car.allTexts[index].len = -1;
+                            }
+                            car.allTexts[index].len = duration;
+                            res(0);
+                        });
+                    });
+
+                });
+
+                Promise.all(_map)
+                    .then(response => resolve(car));
+            })
+            .catch((err) => console.log(`automatic::generateTTsAndSetCaptions::tts.synyhesize thorw error: ${err}`));
+    });
+}
+
 /*
 This function should be called when all the images and text and ready. So it can create details object for ffmpeg.createCustom
 */
-function createDataObject(car) {
+function createDataObject(car, workshop) {
     console.log('automatic:: createDataObject:: car is: ' + util.inspect(car));
     return new Promise((res, rej) => {
         var slide0 = {
@@ -66,7 +160,7 @@ function createDataObject(car) {
                 effect: 2,
                 //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
                 startTime: 0,
-                duration: 4,
+                duration: 3,
                 x: 'center',
                 y: '(h-text_h)/3'
             },
@@ -74,13 +168,13 @@ function createDataObject(car) {
                 enabled: false,
                 style: 0
             },
-            duration: 6
+            duration: 3
         };
         var slide1 = {
             type: 0,
             fileName: '1.jpg',
             caption: {
-                text: car.generateFirstSentence(),
+                text: car.allTexts[0].text,
                 font: 'Arial',
                 fontsize: 50,
                 bold: false,
@@ -88,38 +182,42 @@ function createDataObject(car) {
                 effect: 1,
                 //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
                 startTime: 0,
-                duration: 3
+                duration: 4
             },
+            tts: true,
+            tts_file: `${workshop}/0.mp3`,
             zoom: {
                 enabled: true,
                 style: 0
             },
-            duration: 5
+            duration: Math.floor(car.allTexts[0].len + 2)
         };
         var slide2 = {
             type: 0,
             fileName: '2.jpg',
             caption: {
-                text: car.generateSecondSentence(),
+                text: car.allTexts[1].text,
                 font: 'Arial',
                 fontsize: 50,
                 bold: true,
                 italic: false,
                 effect: 1, //random of 0,1,2
                 startTime: 0,
-                duration: 4
+                duration: 7
             },
+            tts: true,
+            tts_file: `${workshop}/1.mp3`,
             zoom: {
                 enabled: true,
                 style: 0
             },
-            duration: 6
+            duration: Math.floor(car.allTexts[1].len + 2)
         };
         var slide3 = {
             type: 0,
             fileName: '3.jpg',
             caption: {
-                text: car.generateThirdSentence(),
+                text: car.allTexts[2].text,
                 font: 'Arial',
                 fontsize: 50,
                 bold: true,
@@ -127,13 +225,15 @@ function createDataObject(car) {
                 effect: 1,
                 //                effect: Math.floor(Math.random() * (3)), //random of 0,1,2
                 startTime: 0,
-                duration: 4
+                duration: 7
             },
+            tts: true,
+            tts_file: `${workshop}/2.mp3`,
             zoom: {
                 enabled: true,
                 style: 0
             },
-            duration: 6
+            duration: Math.floor(car.allTexts[2].len + 2)
         };
         var transition0 = {
             type: 1,
@@ -184,11 +284,13 @@ function createCar(topic) {
     return new Car(topic.model_make, topic.model_name, topic.model_year);
 }
 
+
 /*
 exporting function that do all the job
 */
 
 
 module.exports = {
-    prepare: prepare
+    prepare: prepare,
+    generate: generate
 }

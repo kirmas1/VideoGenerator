@@ -1,0 +1,3 @@
+Dont delete black.img
+
+ffmpeg module using it

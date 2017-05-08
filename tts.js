@@ -39,6 +39,7 @@ var me = function () {
                 });
             });
         }
+    
     /*
         synthesize function.
         Input: options object in this form

@@ -23,19 +23,18 @@
 </head>
 
 <body layout="column" ng-app="videoAutomation">
-    <md-toolbar flex="10" layout="row" layout-align="center center" class="md-primary">
-        <h1>KBS Software Presents - <small><i>The video machine</i></small></h1>
-    </md-toolbar>
     <md-content layout="column" flex ng-controller="mainNavCtrl">
+
         <md-nav-bar md-selected-nav-item="currentNavItem" nav-bar-aria-label="navigation links">
-            <md-nav-item class="md-warn" md-nav-click="_goto('manual.instructions')" name="Manual">
-                Manual
-            </md-nav-item>
             <md-nav-item md-nav-click="_goto('automatic')" name="Automatic">
                 Automatic
             </md-nav-item>
+            <md-nav-item class="md-warn" md-nav-click="_goto('manual.instructions')" name="Manual">
+                Studio
+            </md-nav-item>
         </md-nav-bar>
-        <div layout="column" flex="90" ui-view class="ext-content md-whiteframe-24dp slide">
+
+        <div layout="column" flex="90" ui-view class="ext-content slide">
         </div>
     </md-content>
 

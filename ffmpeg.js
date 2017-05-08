@@ -4,7 +4,9 @@ var os = require("os");
 var util = require('util');
 var configuration = require('./configuration');
 var ffmpeg = configuration.FFMPEG_PATH;
+var shortid = require('shortid');
 
+var path_prefix = configuration.OS == 'linux' ? './' : '';
 
 var me = function () {
 
@@ -15,7 +17,7 @@ var me = function () {
     }
 */
     var createCustom = function (details, newFolderName) {
-
+        
         console.log('Let\'s start create cusstom!');
 
         var workshop = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
@@ -90,9 +92,9 @@ var me = function () {
                 return new Promise((res, rej) => {
                     console.log('ffmpeg::createCaptionFiles::ele.caption.text is: ' + ele.caption.text);
                     switch (ele.caption.effect) {
-                        case 1:  //sliding from left. The ele.caption.text should be ready with new lines so we need to add white spaces only.
+                        case 1: //sliding from left. The ele.caption.text should be ready with new lines so we need to add white spaces only.
                             var str = '       ' + ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n       ");
-                            
+
                             fs.writeFile(`${workshop}/caption_${index}.txt`, str, (err) => {
                                 res(0);
                             })
@@ -215,6 +217,26 @@ var me = function () {
             return Promise.all(t);
         }
 
+        var overLayTtsPromise = function () {
+            var tts = images.map((ele, index) => {
+
+                //The first slide should be overlaid for the concat to success!
+
+                if (index === 0 && (ele.tts === false || ele.tts === undefined))
+                    return overlaySilentToVideo(`${workshop}/zt_${index}.mp4`, `${workshop}/zts_${index}.mp4`);
+
+                if (ele.tts === false || ele.tts === undefined) return Promise.resolve(0);
+
+                let _options = {
+                    startAt: ele.caption.startTime + 1,
+                    output: `${workshop}/zts_${index}.mp4`
+                }
+
+                return overlayAudioToVideo(`${workshop}/zt_${index}.mp4`, ele.tts_file, _options);
+            });
+            return Promise.all(tts);
+        }
+
         var createTransition = function () {
 
             var firstStep = function () {
@@ -228,6 +250,7 @@ var me = function () {
             var secondStep = function () {
                 console.log('ffmpeg::createTransition:: transition second Step starting');
                 var lf = transitions.map((ele, index) => {
+                    console.log(`ffmpeg::createTransition::secondStep images[index].duration: ${images[index].duration}`);
                     return captureLastFrame(`${workshop}/zt_${index}.mp4`, images[index].duration, `${workshop}/lf${index}.jpg`);
                 });
                 return Promise.all(lf);
@@ -256,7 +279,7 @@ var me = function () {
                                     return createUncoverLeftTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
                                     break;
                                 case 1:
-                                    return createUncoverRightTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/${newFolderName}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
+                                    return createUncoverRightTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
                                     break;
                                 case 2:
                                     return createUncoverDownTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
@@ -301,9 +324,18 @@ var me = function () {
                 var file_content = '';
                 for (var i = 0; i < images.length; i++) {
                     if (i == images.length - 1) {
-                        file_content += "file " + prefix + "zt_" + i + ".mp4'";
+
+                        if (images[i].tts === true || i === 0)
+                            file_content += "file " + prefix + "zts_" + i + ".mp4'";
+                        else
+                            file_content += "file " + prefix + "zt_" + i + ".mp4'";
+
                     } else {
-                        file_content += "file " + prefix + "zt_" + i + ".mp4'" + os.EOL + "file " + prefix + "transition" + i + ".mp4'" + os.EOL;
+
+                        if (images[i].tts === true || i === 0)
+                            file_content += "file " + prefix + "zts_" + i + ".mp4'" + os.EOL + "file " + prefix + "transition" + i + ".mp4'" + os.EOL;
+                        else
+                            file_content += "file " + prefix + "zt_" + i + ".mp4'" + os.EOL + "file " + prefix + "transition" + i + ".mp4'" + os.EOL;
                     }
                 }
                 fs.writeFile(`${workshop}/files_to_concat.txt`, file_content, (err) => {
@@ -357,6 +389,10 @@ var me = function () {
                 })
                 .then(() => {
                     console.log('Done drawTextPromise');
+                    return overLayTtsPromise();
+                })
+                .then(() => {
+                    console.log('Done overLayTtsPromise');
                     return createTransition();
                 })
                 .then(() => {
@@ -404,8 +440,44 @@ var me = function () {
     }
 
     /*
-    same as createZoomInEffectVideo but to some spot near center of picture
-     */
+    Makes a video from an image with the duration and sliding effect. using 25 frames per second.    
+    Input:
+        path_to_image 
+        path_to_output - where you want to save the video. 
+        options {
+            duration - desired for the video in seconds.
+           image_width, image_height, zoom_factor
+        }
+    Output: Promise
+    */
+    var createSlidingCameraEffect = function (path_to_image, path_to_output, options) {
+        console.log('ffmpeg::createSlidingCameraEffect:: path_to_image: ' + path_to_image);
+
+        var zoom_factor = options.zoom_factor || 1.1;
+        var scale_factor = 12;
+        var image_width = options.image_width || 1280;
+        var image_height = options.image_height || 640;
+        var duration = options.duration || 10;
+        var delta_x = image_width * scale_factor * (1 - 1 / zoom_factor) / (25 * duration);
+
+        return new Promise((resolve, reject) => {
+
+            var filter = `[0:v]scale=${image_width * scale_factor}x${image_height * scale_factor},format=yuv420p,setsar=1:1,zoompan=z=\'${zoom_factor}\':x=\'x+${delta_x}\':y=\'ih/2-(ih/zoom/2)\':d=${25 * duration},trim=duration= ${duration}[v]`;
+
+            execFile(ffmpeg, ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
+                console.log('ffmpeg::createSlidingCameraEffect: finished ' + ' createZoomInEffectVideo for: ' + path_to_image);
+                if (error) {
+                    console.log('ffmpeg::createSlidingCameraEffect: rejecting, error ' + ' : ' + error);
+                    reject(error);
+                } else
+                    resolve(path_to_output);
+            });
+        })
+    }
+
+    /*
+        same as createZoomInEffectVideo but to some spot near center of picture
+         */
     var createZoomInEffectVideoNearCenter = function (path_to_image, image_width, image_height, duration, path_to_output) {
         console.log('createZoomInEffectVideoNearCenter for: ' + path_to_image);
         return new Promise((resolve, reject) => {
@@ -511,6 +583,140 @@ var me = function () {
 
 
         });
+    }
+
+    /*
+    For using rollingTextEffect method you have to provide text file like assets/text.txt 
+    
+    Currently supporting only 2 styles
+    a. font_size=72, block_h = 1 (1 empty line between blocks)
+    b. font_size=36, block_h = 2 (2 empty line between blocks)
+    
+    For supporting more we need to create more black_img.jpg files with different sizes. (Currently the only one has 216 height).
+    
+    Options must include: {
+        font_size: int,
+        font_color: int,
+        font_file: path/to/file,
+        text_file: path/to/textfile,
+        block_h: 1 or 2 
+        block_displays_t: array of display times per each block (helpful to timming witht text to speach)
+        ...
+    }
+    
+    */
+    var rollingTextEffect = function (path_to_video, path_to_output, options) {
+
+        var black_img = path_prefix + 'assets/black_img.jpg';
+        
+        var temp_workshop = `${path_prefix}workshop/$temp_rolling_text_effect_{shortid.generate()}`;
+        
+        if (fs.existsSync(temp_workshop)) {
+            //create new newFolderName..
+        } else {
+            fs.mkdirSync(temp_workshop);
+            
+        } 
+           
+        var black_video = `${temp_workshop}/black_video.mp4`;
+        //var black_video = path_prefix + 'assets/black_video.mp4';
+
+        var js = just_sum();
+
+        var total_duration = js + 0.5 * options.block_displays_t.length + 0.5;
+        
+        console.log(`ffmpeg::rollingTextEffect::total_duration ${total_duration}`);
+        
+        createVideoFromImage(black_img, total_duration, black_video)
+            .then((response) => {
+
+                // Create the effect. 
+                return new Promise((res, rej) => {
+
+                    let y = generateY(options.font_size, options.block_displays_t, options.block_h);
+
+                    execFile(ffmpeg, ['-i', black_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:fontfile=${options.font_file}:textfile=${options.text_file}:y=${y}`, `${temp_workshop}/text_on_transparent.mp4`], (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err);
+                            rej(err);
+                        }
+                    }).on('exit', (code, signal) => {
+
+//                        fs.unlink(black_video, (err) => {
+//                            if (err) throw err;
+//                        });
+                        res(`${temp_workshop}/text_on_transparent.mp4`);
+                    });
+                });
+
+            })
+            .then((result) => {
+
+                //overlay over the original
+                return new Promise((resolve, reject) => {
+
+                    console.log(`ffmpeg::rollingTextEffect:: last part, resut: ${result}`);
+
+                    execFile(ffmpeg, ['-i', result, '-i', path_to_video, '-filter_complex', '[0]colorkey=color=#000000:similarity=0.1[keyed]; [1][keyed]overlay=x=10:y=H-1.5*h', path_to_output], (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err);
+                            reject(err);
+                        }
+                    }).on('exit', (code, signal) => {
+
+//                        fs.unlink(`assets/temp.mp4`, (err) => {
+//                            if (err) throw err;
+//                        });
+                        resolve(0);
+                    });
+                });
+            });
+
+
+        function generateY(font_size, block_displays_t, block_h) {
+
+            let y = '';
+            if (block_h === 2) font_size = font_size * 2;
+
+            for (let i = 0; i <= 2 * block_displays_t.length; i++) {
+
+                if (i === 0)
+
+                    y += `if(between(t\\,0\\,0.5)\\,h-${4*font_size}*t\\,`;
+
+                else if (i % 2 === 0) { //Even
+
+                    if (i === 2 * block_displays_t.length) { //last loop
+
+                        y += `h-${4 * font_size}*(t-${special_sum(i)})`;
+
+                        for (let n = 0; n < i; n++)
+                            y += ')';
+                    } else
+                        y += `if(between(t\\,${i/4 + special_sum(i)}\\,${i/4 + special_sum(i) + 0.5})\\,h-${4 * font_size}*(t-${special_sum(i)})\\,`;
+
+                } else { //Odd
+
+                    y += `if(between(t\\,${(i+1)/4 + special_sum(i)}\\,${(i+1)/4 + special_sum(i+1)})\\,h-${font_size * ( i + 1)}\\,`
+                }
+            }
+            console.log(`ffmpeg::rollingTextEffect::generateY:: y= ${y}\n`);
+            return y;
+
+            function special_sum(num) {
+                let sum = 0;
+                for (let k = 0; k <= num / 2 - 1; k++)
+                    sum += block_displays_t[k];
+                return sum;
+            }
+        };
+
+        function just_sum() {
+            var _sum = 0;
+            for (let i = 0; i < options.block_displays_t.length; i++)
+                _sum += options.block_displays_t[i];
+            return _sum;
+        };
     }
 
     /*
@@ -679,6 +885,20 @@ options: font_color, font_file, text_file
         });
     }
 
+    var overlaySilentToVideo = function (input, output) {
+        return new Promise((resolve, reject) => {
+            execFile(ffmpeg, ['-f', 'lavfi', '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-i', input, '-shortest', '-c:v', 'copy', output], (err, stdout, stdin) => {
+                if (err) {
+                    console.log(err);
+                    reject(err);
+                }
+                console.log(stdout);
+            }).on('exit', (code, signal) => {
+                resolve(0);
+            });
+        });
+    }
+
     return {
         overlayAudioToVideo: overlayAudioToVideo,
         createZoomInEffectVideo: createZoomInEffectVideo,
@@ -694,7 +914,9 @@ options: font_color, font_file, text_file
         createUncoverRightTransition: createUncoverRightTransition,
         createUncoverDownTransition: createUncoverDownTransition,
         createCustom: createCustom,
-        drawHeadLine: drawHeadLine
+        drawHeadLine: drawHeadLine,
+        createSlidingCameraEffect: createSlidingCameraEffect, //testing
+        rollingTextEffect: rollingTextEffect
     }
 }
 
