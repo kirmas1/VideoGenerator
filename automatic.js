@@ -103,11 +103,11 @@ function generateTTsAndSetCaptions(car, workshop) {
 
     console.log('automatic:: prepare:: Lets run tts');
 
-    let allTexts = car.generateAllTexts();
+    var allTexts = car.generateAllTexts();
 
     console.log(`automatic::prepare::allTexts: ${util.inspect(allTexts)}`);
 
-    let tts_options = allTexts.map((item, index) => {
+    var tts_options = allTexts.map((item, index) => {
         return {
             text: item.text,
             voiceId: null,
