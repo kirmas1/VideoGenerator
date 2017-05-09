@@ -71,8 +71,9 @@ app.post('/test', function (req, res) {
 app.get('/autogen', function(req, res){
 
     var url_parts = url.parse(req.url,true);
-        console.log('app.get::url_parts.query:: ' + util.inspect(url_parts.query));
-    
+    console.log('app.get::url_parts.query.q is ' + url_parts.query.q);
+        
+    res.end(url_parts.query.q);
     automatic.generate(url_parts.query.q)
         .then((result) => {
         res.end(result);

@@ -125,55 +125,53 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
     $scope.searchText = '';
 
     // list of `state` value/display objects
-    $scope.states = loadAll();
-    
+    $scope.phrases = loadAll();
+
     $scope.generateAutomticVideo = function () {
 
         console.log(`automaticCtrl::genrateAutomaticVideo::search  = ${$scope.searchText}`);
-        
+
+        if ($scope.searchText) videoService.generateAutomticVideo($scope.searchText);
         $scope.searchText = '';
 
-        //            videoService.generateAutomticVideo($scope.searchText);
-
     }
 
-    $scope.newState = function (state) {
-        alert("Sorry! You'll need to create a Constitution for " + state + " first!");
-    }
-
-    /**
-     * Search for states... use $timeout to simulate
-     * remote dataservice call.
-     */
     $scope.querySearch = function (query) {
-        var results = query ? $scope.states.filter(createFilterFor(query)) : $scope.states,
-            deferred;
-
-        return results;
+        var results = query ? $scope.phrases.filter(createFilterFor(query)) : $scope.phrases;
+console.log('-----------results are:' + results);
+        return results.slice( 0 , 3 );
     }
 
     $scope.searchTextChange = function (text) {
         console.log('Text changed to ' + text);
     }
 
-    /**
-     * Build `states` list of key/value pairs
-     */
     function loadAll() {
-        var allStates = 'Alabama, Alaska, Arizona, Arkansas, California, Colorado, Connecticut, Delaware,\
-              Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana,\
-              Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana,\
-              Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina,\
-              North Dakota, Ohio, Oklahoma, Oregon, Pennsylvania, Rhode Island, South Carolina,\
-              South Dakota, Tennessee, Texas, Utah, Vermont, Virginia, Washington, West Virginia,\
-              Wisconsin, Wyoming';
+        var allOptionalPhrases = 
+            'BMW, Audi, Porsche, Lamborghini, Dodge, McLaren, Mercedes-Benz, Bentley, Nissan, Chevrolet, BMW 7 Series, BMW M4, Audi TTS, Audi A8,   Porsche 918 Spyder, Lamborghini Aventador, Dodge Challenger, Dodge Charger, McLaren 650S Coupe, McLaren 650S Spider, Mercedes-Benz S-Class, Mercedes-Benz SL-Class, Bentley Flying Spur, Lamborghini Huracan, Nissan GT-R, Chevrolet Camaro, Porsche Panamera, BMW 7 Series 2016, BMW 7 Series 2017, BMW M4 2017, Audi TTS 2017, Audi A8 2017, Porsche 918 Spyder 2016, Lamborghini Aventador 2017, Dodge Challenger 2016, Dodge Charger 2016, McLaren 650S Coupe 2016, McLaren 650S Spider 2017, Mercedes-Benz S-Class 2016, Mercedes-Benz SL-Class 2016, Bentley Flying Spur 2017, Lamborghini Huracan 2017,Nissan	GT-R 2016, Chevrolet Camaro 2017, Porsche Panamera 2017, Porsche Panamera 2016';
 
-        return allStates.split(/, +/g).map(function (state) {
+
+        return allOptionalPhrases.split(/, +/g).map(function (phrase_option) {
             return {
-                value: state.toLowerCase(),
-                display: state
+                value: phrase_option.toLowerCase(),
+                display: phrase_option
             };
         });
+
+//        var allStates = 'Alabama, Alaska, Arizona, Arkansas, California, Colorado, Connecticut, Delaware,\
+//              Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana,\
+//              Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana,\
+//              Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina,\
+//              North Dakota, Ohio, Oklahoma, Oregon, Pennsylvania, Rhode Island, South Carolina,\
+//              South Dakota, Tennessee, Texas, Utah, Vermont, Virginia, Washington, West Virginia,\
+//              Wisconsin, Wyoming';
+//
+//        return allStates.split(/, +/g).map(function (state) {
+//            return {
+//                value: state.toLowerCase(),
+//                display: state
+//            };
+//        });
     }
 
     /**
@@ -487,7 +485,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
                 console.log("xhr.responseText is: " + xhr.responseText);
             }
         };
-
+        console.log('myApp::generateAutomticVideo:: phrase = ' + phrase);
         xhr.open("GET", `/autogen/?q=${phrase}`);
         xhr.send({
             phrase: "123test"
