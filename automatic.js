@@ -220,7 +220,7 @@ function createDataObject(car, workshop) {
             type: 1,
             duration: 2,
             effect: {
-                type: 1
+                type: 1,
                 uncover: 1
             }
         };
