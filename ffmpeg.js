@@ -17,7 +17,7 @@ var me = function () {
     }
 */
     var createCustom = function (details, newFolderName) {
-        
+
         console.log('Let\'s start create cusstom!');
 
         var workshop = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
@@ -319,7 +319,8 @@ var me = function () {
 
         var writeConcatTextFilePromise = function () {
 
-            var prefix = configuration.OS == 'win' ? '' : "'./workshop/" + newFolderName + '/';
+            //            var prefix = configuration.OS == 'win' ? '' : "'./workshop/" + newFolderName + '/';
+            var prefix = '';
             return new Promise((resolve, reject) => {
                 var file_content = '';
                 for (var i = 0; i < images.length; i++) {
@@ -608,25 +609,25 @@ var me = function () {
     var rollingTextEffect = function (path_to_video, path_to_output, options) {
 
         var black_img = path_prefix + 'assets/black_img.jpg';
-        
+
         var temp_workshop = `${path_prefix}workshop/$temp_rolling_text_effect_{shortid.generate()}`;
-        
+
         if (fs.existsSync(temp_workshop)) {
             //create new newFolderName..
         } else {
             fs.mkdirSync(temp_workshop);
-            
-        } 
-           
+
+        }
+
         var black_video = `${temp_workshop}/black_video.mp4`;
         //var black_video = path_prefix + 'assets/black_video.mp4';
 
         var js = just_sum();
 
         var total_duration = js + 0.5 * options.block_displays_t.length + 0.5;
-        
+
         console.log(`ffmpeg::rollingTextEffect::total_duration ${total_duration}`);
-        
+
         createVideoFromImage(black_img, total_duration, black_video)
             .then((response) => {
 
@@ -642,9 +643,9 @@ var me = function () {
                         }
                     }).on('exit', (code, signal) => {
 
-//                        fs.unlink(black_video, (err) => {
-//                            if (err) throw err;
-//                        });
+                        //                        fs.unlink(black_video, (err) => {
+                        //                            if (err) throw err;
+                        //                        });
                         res(`${temp_workshop}/text_on_transparent.mp4`);
                     });
                 });
@@ -664,9 +665,9 @@ var me = function () {
                         }
                     }).on('exit', (code, signal) => {
 
-//                        fs.unlink(`assets/temp.mp4`, (err) => {
-//                            if (err) throw err;
-//                        });
+                        //                        fs.unlink(`assets/temp.mp4`, (err) => {
+                        //                            if (err) throw err;
+                        //                        });
                         resolve(0);
                     });
                 });
