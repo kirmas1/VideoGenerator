@@ -1,6 +1,7 @@
 var synonym = require('./synonyms.js');
 var getSynonym = synonym.getSynonym;
 var db = require('./cars-db');
+var util = require('util');
 
 /*
 car = {
@@ -21,7 +22,7 @@ function Car(model_make, model_name, model_year) {
 
         db.getCarSpecs(this).then((specs) => {
             this.specs = specs;
-            console.log('db.getCarSpecs success')
+            console.log('car::Car:: db.getCarSpecs success with vaule: ' + util.inspect(specs));
             resolve(this);
         });
     })

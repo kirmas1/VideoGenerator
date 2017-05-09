@@ -89,12 +89,12 @@ function generate(phrase) {
                 console.log(`automatic::generate:: prepare(topic) return value: ${res}`);
                 console.log(`automatic::generate:: new_folder value: ${new_folder}`);
                 console.log(`automatic::generate:: ffmpeg_details value: ${util.inspect(ffmpeg_details)}`);
-                resolve(res);
-                //return ffmpeg.createCustom(res.d, new_folder);
+                //resolve(res);
+                return ffmpeg.createCustom(ffmpeg_details, new_folder);
             })
-            //                .then(res => {
-            //                    resolve(res);
-            //                })
+            .then(res => {
+                resolve(res);
+            })
     })
 }
 /*
