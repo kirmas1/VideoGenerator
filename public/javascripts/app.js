@@ -119,15 +119,79 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
 
 }]);
 
-myApp.controller('automaticCtrl', ['$scope', 'videoService', function ($scope, videoService) {
+myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($scope, $q, videoService) {
     console.log(`automaticCtrl`);
 
-    $scope.phrase = '';
+    $scope.searchText = '';
+
+    // list of `state` value/display objects
+    $scope.states = loadAll();
+    
     $scope.generateAutomticVideo = function () {
-            console.log(`automaticCtrl::genrateAutomaticVideo`);
-            videoService.generateAutomticVideo($scope.phrase);
-        }
+
+        console.log(`automaticCtrl::genrateAutomaticVideo::search  = ${$scope.searchText}`);
+        
+        $scope.searchText = '';
+
+        //            videoService.generateAutomticVideo($scope.searchText);
+
+    }
+
+    $scope.newState = function (state) {
+        alert("Sorry! You'll need to create a Constitution for " + state + " first!");
+    }
+
+    /**
+     * Search for states... use $timeout to simulate
+     * remote dataservice call.
+     */
+    $scope.querySearch = function (query) {
+        var results = query ? $scope.states.filter(createFilterFor(query)) : $scope.states,
+            deferred;
+
+        return results;
+    }
+
+    $scope.searchTextChange = function (text) {
+        console.log('Text changed to ' + text);
+    }
+
+    /**
+     * Build `states` list of key/value pairs
+     */
+    function loadAll() {
+        var allStates = 'Alabama, Alaska, Arizona, Arkansas, California, Colorado, Connecticut, Delaware,\
+              Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana,\
+              Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana,\
+              Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina,\
+              North Dakota, Ohio, Oklahoma, Oregon, Pennsylvania, Rhode Island, South Carolina,\
+              South Dakota, Tennessee, Texas, Utah, Vermont, Virginia, Washington, West Virginia,\
+              Wisconsin, Wyoming';
+
+        return allStates.split(/, +/g).map(function (state) {
+            return {
+                value: state.toLowerCase(),
+                display: state
+            };
+        });
+    }
+
+    /**
+     * Create filter function for a query string
+     */
+    function createFilterFor(query) {
+        var lowercaseQuery = angular.lowercase(query);
+
+        return function filterFn(state) {
+            return (state.value.indexOf(lowercaseQuery) === 0);
+        };
+
+    }
+
+    //////////////////////////
+    ////////////////////////
 }]);
+
 
 myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
 
@@ -412,7 +476,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
             link: '',
             inProgress: true
         }) - 1;
-        
+
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
 
@@ -498,5 +562,19 @@ myApp.directive('customOnChange', function () {
             var onChangeHandler = scope.$eval(attrs.customOnChange);
             element.bind('change', onChangeHandler);
         }
+    };
+});
+
+myApp.directive('ngEnter', function () {
+    return function (scope, element, attrs) {
+        element.bind("keydown keypress", function (event) {
+            if (event.which === 13) {
+                scope.$apply(function () {
+                    scope.$eval(attrs.ngEnter);
+                });
+
+                event.preventDefault();
+            }
+        });
     };
 });
