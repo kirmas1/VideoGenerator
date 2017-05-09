@@ -7,36 +7,101 @@ var util = require('util');
 var tts = require('./tts');
 var configuration = require('./configuration');
 var mp3Duration = require('mp3-duration');
+var nlp = require('./nlp');
 
 
 function generate(phrase) {
 
-    console.log(`automatic::generate::creating fake car topic`);
-    //TO DO
-    var topic = {
-        model_make: 'BMW',
-        model_name: 'M4',
-        model_year: 2017
-    };
+    console.log(`automatic::generate::start`);
+
+    var new_folder = createNewWorkShopFolder();
+    var ffmpeg_details;
+    var workshop = configuration.OS == 'linux' ? `./workshop/${new_folder}` : `workshop/${new_folder}`;
+
 
     return new Promise((resolve, reject) => {
 
         Promise.resolve()
             .then(res => {
-                return prepare(topic)
+
+                console.log(`automatic::generate:: call nlp.analizeNLPhrase(phrase)`);
+
+                return nlp.analizeNLPhrase(phrase);
+            })
+            .then(topic => {
+
+                console.log(`automatic::generate:: nlp.analizeNLPhrase(phrase) return value: ${util.inspect(topic)}`);
+
+                //
+                /***************************************
+                 *
+                 * topic.id: 0 - car, model make+name+year
+                 *           1 - car, model make+name
+                 *           2 - cae, model make  (manufacture)
+                 *
+                 ****************************************/
+                if (topic.id === 0) {
+                    return new Promise((resolve, reject) => {
+
+                        Promise.resolve()
+
+                        .then(res => {
+                            console.log(`automatic::prepare::calling create car`);
+                            return createCar(topic)
+                        })
+
+                        .then((car) => {
+                            console.log(`automatic::prepare::calling getCarImages`);
+                            return getCarImages(car, workshop);
+
+                        })
+
+                        .then((car) => {
+                            console.log(`automatic::prepare::calling generateTTsAndSetCaptions`);
+                            return generateTTsAndSetCaptions(car, workshop);
+
+                        })
+
+                        .then((car) => {
+                            console.log(`automatic::prepare::calling createDataObject`);
+                            return createDataObject(car, workshop); //for ffmpeg
+
+                        })
+
+                        .then((details_for_ffmpeg) => {
+                                ffmpeg_details = details_for_ffmpeg;
+                                resolve(0);
+
+                            })
+                            .catch((err) => {
+                                console.log(err);
+                                reject(err);
+                            });
+                    });
+                } else {
+                    resolve(`cant prepare for this kind of topic. topic.id=${topic.id}`);
+                }
+
+                //return prepare(topic);
             })
             .then(res => {
-                return ffmpeg.createCustom(res.d, res.nf)
-            })
-            .then(res => {
+
+                console.log(`automatic::generate:: prepare(topic) return value: ${res}`);
+                console.log(`automatic::generate:: new_folder value: ${new_folder}`);
+                console.log(`automatic::generate:: ffmpeg_details value: ${util.inspect(ffmpeg_details)}`);
                 resolve(res);
+                //return ffmpeg.createCustom(res.d, new_folder);
             })
+            //                .then(res => {
+            //                    resolve(res);
+            //                })
     })
 }
 /*
 This function should be responsible to get topic as input and set the ground for ffmpeg.generateCustom
 */
 function prepare(topic) {
+
     console.log(`automatic::prepare::`);
     var new_folder = createNewWorkShopFolder();
 
@@ -44,46 +109,62 @@ function prepare(topic) {
 
     console.log(`automatic::prepare::workshop= ${workshop}`);
 
-    return new Promise((resolve, reject) => {
+    /***************************************
+     *
+     * topic.id: 0 - car, model make+name+year
+     *           1 - car, model make+name
+     *           2 - cae, model make  (manufacture)
+     *
+     ****************************************/
+    if (topic.id === 0) {
+        return new Promise((resolve, reject) => {
 
-        Promise.resolve()
+            Promise.resolve()
 
-        .then(res => {
-            console.log(`automatic::prepare::calling create car`);
-            return createCar(topic)
-        })
+            .then(res => {
+                console.log(`automatic::prepare::calling create car`);
+                return createCar(topic)
+            })
 
-        .then((car) => {
-            console.log(`automatic::prepare::calling getCarImages`);
-            return getCarImages(car, workshop);
-
-        })
-
-        .then((car) => {
-            console.log(`automatic::prepare::calling generateTTsAndSetCaptions`);
-            return generateTTsAndSetCaptions(car, workshop);
-
-        })
-
-        .then((car) => {
-            console.log(`automatic::prepare::calling createDataObject`);
-            return createDataObject(car, workshop); //for ffmpeg
-
-        })
-
-        .then((details_for_ffmpeg) => {
-                console.log(`automatic::prepare::resolve`);
-                resolve({
-                    d: details_for_ffmpeg,
-                    nf: new_folder
-                });
+            .then((car) => {
+                console.log(`automatic::prepare::calling getCarImages`);
+                return getCarImages(car, workshop);
 
             })
-            .catch((err) => {
-                console.log(err);
-                reject(err);
-            });
-    });
+
+            .then((car) => {
+                console.log(`automatic::prepare::calling generateTTsAndSetCaptions`);
+                return generateTTsAndSetCaptions(car, workshop);
+
+            })
+
+            .then((car) => {
+                console.log(`automatic::prepare::calling createDataObject`);
+                return createDataObject(car, workshop); //for ffmpeg
+
+            })
+
+            .then((details_for_ffmpeg) => {
+                    console.log(`automatic::prepare::resolve this: ${{
+                        d: details_for_ffmpeg,
+                        nf: new_folder
+                    }}`);
+                    resolve({
+                        d: details_for_ffmpeg,
+                        nf: new_folder
+                    });
+
+                })
+                .catch((err) => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
+    } else {
+        return Promise.resolve(`cant prepare for this kind of topic. topic.id=${topic.id}`);
+    }
+
+
 }
 
 function getCarImages(car, workshop) {
@@ -240,12 +321,12 @@ function createDataObject(car, workshop) {
                 uncover: Math.floor(Math.random() * (3)) //random of 0,1,2
             }
         };
-        
+
         console.log('automatic:: createDataObject:: resolving: ' + util.inspect({
             videoName: 'Unknown',
             slidesInfo: [slide0, transition0, slide1]
         }));
-        
+
         res({
             videoName: 'Unknown',
             slidesInfo: [slide0, transition0, slide1]

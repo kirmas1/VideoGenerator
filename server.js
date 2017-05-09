@@ -73,9 +73,11 @@ app.get('/autogen', function(req, res){
     var url_parts = url.parse(req.url,true);
     console.log('app.get::url_parts.query.q is ' + url_parts.query.q);
         
-    res.end(url_parts.query.q);
+    //res.end(url_parts.query.q);
+    
     automatic.generate(url_parts.query.q)
         .then((result) => {
+        console.log(`server.js::app.get(/autogen):: result is: ${util.inspect(result)}`);
         res.end(result);
     });
     
