@@ -13,6 +13,7 @@ var me = function () {
     /*
     details is  {
         videoName: 'video name',
+        audio: {}
         slidesInfo: []
     }
 */
@@ -21,6 +22,10 @@ var me = function () {
         console.log('Let\'s start create cusstom!');
 
         var workshop = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
+
+        var innerVideoInfo = {
+            transitions: []
+        };
 
         //slidesInfo include images and transitions, lets split them
         images = [];
@@ -83,8 +88,6 @@ var me = function () {
             return Promise.all(zoom_requests);
         }
 
-        /*
-         */
         var createCaptionFiles = function () {
 
             var p = images.map((ele, index) => {
@@ -222,19 +225,34 @@ var me = function () {
 
                 //The first slide should be overlaid for the concat to success!
 
-                if (index === 0 && (ele.tts === false || ele.tts === undefined))
+                if (index === 0 && (ele.tts.enable === false || ele.tts.enable === undefined))
                     return overlaySilentToVideo(`${workshop}/zt_${index}.mp4`, `${workshop}/zts_${index}.mp4`);
 
-                if (ele.tts === false || ele.tts === undefined) return Promise.resolve(0);
+                if (ele.tts.enable === false || ele.tts.enable === undefined) return Promise.resolve(0);
 
                 var _options = {
-                    startAt: ele.caption.startTime + 1,
+                    startAt: ele.tts.startTime,
+                    audioFileDuration: ele.tts.file_len,
+                    videoFileDuration: ele.duration,
                     output: `${workshop}/zts_${index}.mp4`
                 }
 
-                return overlayAudioToVideo(`${workshop}/zt_${index}.mp4`, ele.tts_file, _options);
+                return overlaySpeechToVideo(`${workshop}/zt_${index}.mp4`, ele.tts.file_path, _options);
             });
             return Promise.all(tts);
+        }
+
+        var overLaySilentToTransitions = function () {
+
+            var ts = transitions.map((ele, index) => {
+
+                var old_path = innerVideoInfo.transitions[index].path;
+
+                innerVideoInfo.transitions[index].path = `${workshop}/transition${index}_silentAudio.mp4`;
+
+                return overlaySilentToVideo(old_path, innerVideoInfo.transitions[index].path);
+            });
+            return Promise.all(ts);
         }
 
         var createTransition = function () {
@@ -268,21 +286,27 @@ var me = function () {
                 console.log('transition Fourth step starting');
                 var transitionsRequest = transitions.map((ele, index) => {
                     console.log(`Transition ${index} is ${ele.effect.type}`);
+                    
+                    if (innerVideoInfo.transitions[index] === undefined)
+                        innerVideoInfo.transitions[index] = {path:`${workshop}/transition${index}.mp4`};
+                    else
+                        innerVideoInfo.transitions[index].path = `${workshop}/transition${index}.mp4`;
+
                     switch (Number(ele.effect.type)) {
                         case 0:
                             console.log('in case 0');
-                            return createBlend(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, ele.duration, `${workshop}/transition${index}.mp4`);
+                            return createBlend(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, ele.duration, innerVideoInfo.transitions[index].path);
                             break;
                         case 1:
                             switch (Number(ele.effect.uncover)) {
                                 case 0:
-                                    return createUncoverLeftTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
+                                    return createUncoverLeftTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, innerVideoInfo.transitions[index].path);
                                     break;
                                 case 1:
-                                    return createUncoverRightTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
+                                    return createUncoverRightTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, innerVideoInfo.transitions[index].path);
                                     break;
                                 case 2:
-                                    return createUncoverDownTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, `${workshop}/transition${index}.mp4`);
+                                    return createUncoverDownTransition(`${workshop}/lfv${index}.mp4`, `${workshop}/p${index}.mp4`, innerVideoInfo.transitions[index].path);
                                     break;
                                 default:
                                     return Promise.reslove();
@@ -318,25 +342,42 @@ var me = function () {
         }
 
         var writeConcatTextFilePromise = function () {
-
-            //            var prefix = configuration.OS == 'win' ? '' : "'./workshop/" + newFolderName + '/';
+            /*
+            var s = 'workshop/file.mp4'
+            undefined
+            s.lastIndexOf('/')
+            8
+            s.substr(8)
+            "/file.mp4"
+            s.substr(9)
+            "file.mp4"
+            var x = s.substr(9);
+            undefined
+            x
+            "file.mp4"
+            */
             var prefix = '';
             return new Promise((resolve, reject) => {
                 var file_content = '';
                 for (var i = 0; i < images.length; i++) {
                     if (i == images.length - 1) {
 
-                        if (images[i].tts === true || i === 0)
+                        if (images[i].tts.enable === true || i === 0)
                             file_content += "file " + prefix + "zts_" + i + ".mp4'";
                         else
                             file_content += "file " + prefix + "zt_" + i + ".mp4'";
 
                     } else {
 
-                        if (images[i].tts === true || i === 0)
-                            file_content += "file " + prefix + "zts_" + i + ".mp4'" + os.EOL + "file " + prefix + "transition" + i + ".mp4'" + os.EOL;
+                        //                        if (images[i].tts.enable === true || i === 0)
+                        //                            file_content += "file " + prefix + "zts_" + i + ".mp4'" + os.EOL + "file " + prefix + "transition" + i + ".mp4'" + os.EOL;
+                        //                        else
+                        //                            file_content += "file " + prefix + "zt_" + i + ".mp4'" + os.EOL + "file " + prefix + "transition" + i + ".mp4'" + os.EOL;
+
+                        if (images[i].tts.enable === true || i === 0)
+                            file_content += "file " + prefix + "zts_" + i + ".mp4'" + os.EOL + "file " + innerVideoInfo.transitions[i].path.substr(innerVideoInfo.transitions[i].path.lastIndexOf('/') + 1) + os.EOL;
                         else
-                            file_content += "file " + prefix + "zt_" + i + ".mp4'" + os.EOL + "file " + prefix + "transition" + i + ".mp4'" + os.EOL;
+                            file_content += "file " + prefix + "zt_" + i + ".mp4'" + os.EOL + "file " + innerVideoInfo.transitions[i].path.substr(innerVideoInfo.transitions[i].path.lastIndexOf('/') + 1) + os.EOL;
                     }
                 }
                 fs.writeFile(`${workshop}/files_to_concat.txt`, file_content, (err) => {
@@ -353,21 +394,42 @@ var me = function () {
                         if (error) {
                             throw error;
                         }
+                        innerVideoInfo.final_video_path = workshop + '/final_' + newFolderName + '.mp4';
                         resolve(0);
                     });
                 }, 2000);
             });
         }
 
+        var overlayAudioToVideoPromise = function () {
+            return new Promise((res, rej) => {
+                overlayAudioToVideo(innerVideoInfo.final_video_path, details.audio.file_path, {
+                        output: `${workshop}/finalWithMusic.mp4`
+                    })
+                    .then((result) => {
+                        innerVideoInfo.final_video_path = `${workshop}/finalWithMusic.mp4`;
+                        res(0);
+                    });
+            });
+        }
+
         var moveFinalFileToPublic = function () {
             return new Promise((resolve, reject) => {
-                readable = fs.createReadStream(workshop + "/final_" + newFolderName + ".mp4");
-                readable.on('end', () => {
-                    resolve(0);
-                });
-                var public = configuration.OS == 'win' ? '\public' : './public';
-                readable.pipe(fs.createWriteStream(`${public}/videos/final_${newFolderName}.mp4`));
-            })
+                    readable = fs.createReadStream(innerVideoInfo.final_video_path);
+                    readable.on('end', () => {
+                        resolve(0);
+                    });
+                    var public = configuration.OS == 'win' ? '\public' : './public';
+                    readable.pipe(fs.createWriteStream(`${public}/videos/final_${newFolderName}.mp4`));
+                })
+                //            return new Promise((resolve, reject) => {
+                //                readable = fs.createReadStream(workshop + "/final_" + newFolderName + ".mp4");
+                //                readable.on('end', () => {
+                //                    resolve(0);
+                //                });
+                //                var public = configuration.OS == 'win' ? '\public' : './public';
+                //                readable.pipe(fs.createWriteStream(`${public}/videos/final_${newFolderName}.mp4`));
+                //            })
         }
 
         return new Promise((resolve, reject) => {
@@ -397,15 +459,26 @@ var me = function () {
                     return createTransition();
                 })
                 .then(() => {
-                    console.log('Done with Transitions clips');
+                    console.log('Done createTransition');
+                    return overLaySilentToTransitions();
+                })
+                .then(() => {
+                    console.log('Done with overLaySilentToTransitions');
                     return writeConcatTextFilePromise();
                 })
                 .then(() => {
-                    console.log('Done writing the concat file');
+                    console.log('Done writeConcatTextFilePromise');
                     return concatAllPromise();
+                })                
+                .then(() => {
+                    console.log('Done concatAllPromise');
+                    if (details.audio.enable === true)
+                        return overlayAudioToVideoPromise();
+                    else
+                        return Promise.resolve();
                 })
                 .then(() => {
-                    console.log('Done concat the files');
+                    console.log('Done overlayAudioToVideoPromise');
                     moveFinalFileToPublic();
                 })
                 .then(() => {
@@ -859,6 +932,7 @@ options: font_color, font_file, text_file
         });
     }
 
+
     /*
     Input: path the video file, path to audio file
     options: {
@@ -868,15 +942,26 @@ options: font_color, font_file, text_file
     
     Return Pormise
     */
-    /*
-    ffmpeg -i input.mp4 -i input.mp3 -f lavfi -t 2 -i anullsrc 
--filter_complex "[2:a][1:a]concat=n=2:v=0:a=1[a0];[a0]apad[a]" -map 0:v -map [a] -shortest -y output.mp4
-*/
-    var overlayAudioToVideo = function (video, audio, options) {
+    var overlaySpeechToVideo = function (video, audio, options) {
         return new Promise((resolve, reject) => {
-            execFile(ffmpeg, ['-i', video, '-i', audio, '-f', 'lavfi', '-t', options.startAt, '-i', 'anullsrc', '-filter_complex', "[2:a][1:a]concat=n=2:v=0:a=1[a0];[a0]apad[a]", '-map', '0:v', '-map', '[a]', '-shortest', '-y', options.output], (err, stdout, stdin) => {
+            execFile(ffmpeg, ['-i', video, '-i', audio, '-f', 'lavfi', '-t', options.startAt, '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-f', 'lavfi', '-t', options.videoFileDuration - options.audioFileDuration - options.startAt, '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-filter_complex', "[2:a][1:a][3:a]concat=n=3:v=0:a=1[a]", '-map', '0:v', '-map', '[a]', '-shortest', '-y', options.output], (err, stdout, stdin) => {
                 if (err) {
                     console.log(err);
+                    reject(err);
+                }
+                console.log(stdout);
+            }).on('exit', (code, signal) => {
+                resolve(0);
+            });
+        });
+    }
+
+    var overlayAudioToVideo = function (video, audio, options) {
+        //ffmpeg -i bg_music_0.mp3 -i movie.mp4 -filter_complex "[0:a][1:a]amerge,pan=stereo|c0=0.1*c0+c2:c1=0.1*c1+c2[out]" -map 1:v -map "[out]" -c:v copy output7.mp4
+        return new Promise((resolve, reject) => {
+            execFile(ffmpeg, ['-i', audio, '-i', video, '-filter_complex', '[0:a][1:a]amerge,pan=stereo|c0=0.1*c0+c2:c1=0.1*c1+c2[out]', '-map', '1:v', '-map', '[out]', '-c:v', 'copy', options.output], (err, stdout, stdin) => {
+                if (err) {
+                    console.log('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
                     reject(err);
                 }
                 console.log(stdout);
@@ -901,7 +986,7 @@ options: font_color, font_file, text_file
     }
 
     return {
-        overlayAudioToVideo: overlayAudioToVideo,
+        overlaySpeechToVideo: overlaySpeechToVideo,
         createZoomInEffectVideo: createZoomInEffectVideo,
         createZoomInEffectVideoNearCenter: createZoomInEffectVideoNearCenter,
         captureLastFrame: captureLastFrame,

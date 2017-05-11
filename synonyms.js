@@ -17,7 +17,7 @@ var a_huge = ['huge', 'astronomical', 'outsized', 'giant', 'outsize', 'oversize'
 var b = ['producing', 'generating', 'acheiving', 'creating'];
 var c_good = ['Good', 'smashing', 'respectable', 'hot', 'solid'];
 var c_reasonable = ['reasonable', 'Nice', 'Decent', 'Respectable'];
-var c_amazing = ['Amazing', 'fantastic', 'marvellous', 'grand', 'terrific', 'rattling', 'extraordi nary', 'tremendous', 'impressive', 'awesome', 'superb', 'Whopping'];
+var c_amazing = ['Amazing', 'fantastic', 'marvellous', 'grand', 'terrific', 'rattling', 'extraordinary', 'tremendous', 'impressive', 'awesome', 'superb', 'Whopping'];
 
 var d = ['almost', 'about', 'around', 'some', 'roughly', 'just about', 'more or less', 'close to', 'approximately'];
 

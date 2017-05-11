@@ -46,24 +46,24 @@ function generate(phrase) {
                         Promise.resolve()
 
                         .then(res => {
-                            console.log(`automatic::prepare::calling create car`);
+                            console.log(`automatic::generate::calling create car`);
                             return createCar(topic)
                         })
 
                         .then((car) => {
-                            console.log(`automatic::prepare::calling getCarImages`);
+                            console.log(`automatic::generate::calling getCarImages`);
                             return getCarImages(car, workshop);
 
                         })
 
                         .then((car) => {
-                            console.log(`automatic::prepare::calling generateTTsAndSetCaptions`);
+                            console.log(`automatic::generate::calling generateTTsAndSetCaptions`);
                             return generateTTsAndSetCaptions(car, workshop);
 
                         })
 
                         .then((car) => {
-                            console.log(`automatic::prepare::calling createDataObject`);
+                            console.log(`automatic::generate::calling createDataObject`);
                             return createDataObject(car, workshop); //for ffmpeg
 
                         })
@@ -89,7 +89,7 @@ function generate(phrase) {
                 console.log(`automatic::generate:: prepare(topic) return value: ${res}`);
                 console.log(`automatic::generate:: new_folder value: ${new_folder}`);
                 console.log(`automatic::generate:: ffmpeg_details value: ${util.inspect(ffmpeg_details)}`);
-                //resolve(res);
+
                 return ffmpeg.createCustom(ffmpeg_details, new_folder);
             })
             .then(res => {
@@ -97,9 +97,10 @@ function generate(phrase) {
             })
     })
 }
+
 /*
 This function should be responsible to get topic as input and set the ground for ffmpeg.generateCustom
-*/
+
 function prepare(topic) {
 
     console.log(`automatic::prepare::`);
@@ -108,14 +109,15 @@ function prepare(topic) {
     var workshop = configuration.OS == 'linux' ? `./workshop/${new_folder}` : `workshop/${new_folder}`;
 
     console.log(`automatic::prepare::workshop= ${workshop}`);
-
-    /***************************************
-     *
-     * topic.id: 0 - car, model make+name+year
-     *           1 - car, model make+name
-     *           2 - cae, model make  (manufacture)
-     *
-     ****************************************/
+    */
+/***************************************
+ *
+ * topic.id: 0 - car, model make+name+year
+ *           1 - car, model make+name
+ *           2 - cae, model make  (manufacture)
+ *
+ ****************************************/
+/*
     if (topic.id === 0) {
         return new Promise((resolve, reject) => {
 
@@ -166,15 +168,17 @@ function prepare(topic) {
 
 
 }
+*/
+
 
 function getCarImages(car, workshop) {
     console.log('automatic:: getCarImages:: car is: ' + util.inspect(car));
     return new Promise((resolve, reject) => {
         db.getCarPictures(car, {
-                total_count: 2,
+                total_count: 3,
                 interior_count: 0,
-                exterior_count: 2,
-                engine_count: 0,
+                exterior_count: 1,
+                engine_count: 2,
                 path: workshop
             })
             .then(() => resolve(car))
@@ -199,29 +203,30 @@ function generateTTsAndSetCaptions(car, workshop) {
     });
 
     return new Promise((resolve, reject) => {
-        tts.synthesize({
-                items: tts_options
-            })
+
+        tts.synthesize( {items: tts_options} )
             .then(response => {
 
                 var _map = tts_options.map((ele, index) => {
+
                     return new Promise((res, rej) => {
+
                         mp3Duration(ele.path, function (err, duration) {
                             if (err) {
-                                car.allTexts[index].len = -1;
+                                car.allTexts[index].tts_file_len = -1;
+                                console.log(`automatic::generateTTsAndSetCaptions::mp3Duration thorw error: ${err}`);
                             }
-                            car.allTexts[index].len = duration;
+                            car.allTexts[index].tts_file_len = duration;
                             res(0);
                         });
                     });
 
                 });
 
-                Promise.all(_map)
-                    .then(response => resolve(car));
-            })
+                Promise.all(_map).then(response => resolve(car));
+            }) //end of then
             .catch((err) => console.log(`automatic::generateTTsAndSetCaptions::tts.synyhesize thorw error: ${err}`));
-    });
+    }); //end of Promise
 }
 
 /*
@@ -247,12 +252,16 @@ function createDataObject(car, workshop) {
                 x: 'center',
                 y: '(h-text_h)/3'
             },
+            tts: {
+              enable:false  
+            },
             zoom: {
                 enabled: false,
                 style: 0
             },
             duration: 3
         };
+
         var slide1 = {
             type: 0,
             fileName: '1.jpg',
@@ -265,15 +274,46 @@ function createDataObject(car, workshop) {
                 effect: 1,
                 //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
                 startTime: 0,
-                duration: 4
+                duration: 4 //Doesn't matter when tts is true! Or when effect=1 (Sliding from left)
             },
-            tts: true,
-            tts_file: `${workshop}/0.mp3`,
+            tts: {
+                enable: true,
+                file_path: `${workshop}/0.mp3`,
+                file_len: car.allTexts[0].tts_file_len,
+                startTime: 2
+            },
+
             zoom: {
                 enabled: true,
                 style: 0
             },
-            duration: Math.floor(car.allTexts[0].len + 2)
+            duration: Math.floor(car.allTexts[0].tts_file_len + 4)
+        };
+        var slide2 = {
+            type: 0,
+            fileName: '2.jpg',
+            caption: {
+                text: car.allTexts[1].text,
+                font: 'Arial',
+                fontsize: 50,
+                bold: false,
+                italic: false,
+                effect: 1,
+                //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
+                startTime: 0,
+                duration: 4
+            },
+            tts: {
+                enable: true,
+                file_path: `${workshop}/1.mp3`,
+                file_len: car.allTexts[1].tts_file_len,
+                startTime: 2
+            },
+            zoom: {
+                enabled: true,
+                style: 0
+            },
+            duration: Math.floor(car.allTexts[1].tts_file_len + 6)
         };
 
         var slide3 = {
@@ -289,13 +329,17 @@ function createDataObject(car, workshop) {
                 startTime: 0,
                 duration: 7
             },
-            tts: true,
-            tts_file: `${workshop}/2.mp3`,
+            tts: {
+                enable: true,
+                file_path: `${workshop}/2.mp3`,
+                file_len: car.allTexts[2].tts_file_len,
+                startTime: 2
+            },
             zoom: {
                 enabled: true,
                 style: 0
             },
-            duration: Math.floor(car.allTexts[2].len + 2)
+            duration: Math.floor(car.allTexts[2].tts_file_len + 4)
         };
         var transition0 = {
             type: 1,
@@ -324,12 +368,20 @@ function createDataObject(car, workshop) {
 
         console.log('automatic:: createDataObject:: resolving: ' + util.inspect({
             videoName: 'Unknown',
-            slidesInfo: [slide0, transition0, slide1]
+            audio: {
+                enable: true,
+                file_path: 'assets/bg_music_0.mp3'
+            },
+            slidesInfo: [slide0, transition0, slide1, transition1, slide2]
         }));
 
         res({
             videoName: 'Unknown',
-            slidesInfo: [slide0, transition0, slide1]
+            audio: {
+                enable: true,
+                file_path: 'assets/bg_music_0.mp3'
+            },
+            slidesInfo: [slide0, transition0, slide1, transition1, slide2]
         });
     });
 }
@@ -358,6 +410,5 @@ exporting function that do all the job
 
 
 module.exports = {
-    prepare: prepare,
     generate: generate
 }

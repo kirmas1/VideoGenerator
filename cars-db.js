@@ -134,6 +134,7 @@ module.exports = (function () {
                         console.log(`cars-db:: getCarPictures:: int_links are:${int_links}\n`);
                         console.log(`cars-db:: getCarPictures:: engine_links size: ${engine_links.length}\n`);
                         console.log(`cars-db:: getCarPictures:: engine_links are:${engine_links}\n`);
+                        
                         //lets pick random links for each category
                         var randomLinks = [];
 
@@ -141,7 +142,7 @@ module.exports = (function () {
                         while (counter < options.exterior_count) {
 
                             var randomnumber = Math.floor(Math.random() * ext_links.length);
-                            console.log(`cars-db:: getCarPictures::firstWhile, randomnumber: ${randomnumber}\n`);
+
                             if (randomLinks.indexOf(ext_links[randomnumber]) > -1) continue;
                             randomLinks.push(ext_links[randomnumber]);
                             counter++;
