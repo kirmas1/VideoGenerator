@@ -40,11 +40,45 @@ var me = function () {
         }
 
         var scalePromise = function () {
-            var scale_requests = images.map(function (ele, index) {
+            
+                var scale_requests = images.map(function (ele, index) {
+                    return new Promise(function (resolve) {
+
+                        var filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
+                        var child = execFile(ffmpeg, ['-i', workshop + '/' + ele.fileName, '-vf', filter, workshop + '/scaled_' + index + '.jpg'], (error, stdout, stderr) => {
+                            if (error) {
+                                throw error;
+                            }
+                            resolve(0);
+                        });
+                    });
+                });
+            
+                return Promise.all(scale_requests);
+            }
+            //Testing
+        var scalePromise2 = function () {
+                    var scale_requests = images.map(function (ele, index) {
+                        return new Promise(function (resolve) {
+
+                            var filter = 'scale=\'if(gt(a,16/9),-1,1280)\':\'if(gt(a,16/9),720,-1)\'';
+                            var child = execFile(ffmpeg, ['-i', workshop + '/' + ele.fileName, '-vf', filter, workshop + '/scaled_' + index + '.jpg'], (error, stdout, stderr) => {
+                                if (error) {
+                                    throw error;
+                                }
+                                resolve(0);
+                            });
+                        });
+                    });
+                    return Promise.all(scale_requests);
+            }
+            //Testing
+        var cropPromise = function () {
+            var crop_requests = images.map(function (ele, index) {
                 return new Promise(function (resolve) {
 
-                    var filter = 'scale=\'if(gt(a,16/9),1280,-1)\':\'if(gt(a,16/9),-1,720)\'';
-                    var child = execFile(ffmpeg, ['-i', workshop + '/' + ele.fileName, '-vf', filter, workshop + '/scaled_' + index + '.jpg'], (error, stdout, stderr) => {
+                    var filter = 'crop=1280:720';
+                    var child = execFile(ffmpeg, ['-i', `${workshop}/scaled_${index}.jpg`, '-vf', filter, workshop + '/scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
                         if (error) {
                             throw error;
                         }
@@ -52,7 +86,7 @@ var me = function () {
                     });
                 });
             });
-            return Promise.all(scale_requests);
+            return Promise.all(crop_requests);
         }
 
         var padPromise = function () {
@@ -77,8 +111,14 @@ var me = function () {
                     if (ele.zoom.style == 0) {
                         return createZoomInEffectVideo(`${workshop}/scaled_padded${index}.jpg`, 1280, 720, ele.duration, `${workshop}/zoomeffect_${index}.mp4`);
 
-                    } else {
+                    } else if (ele.zoom.style == 1) {
                         return createZoomInEffectVideoNearCenter(`${workshop}/scaled_padded${index}.jpg`, 1280, 720, ele.duration, `${workshop}/zoomeffect_${index}.mp4`);
+                    } else if (ele.zoom.style == 2) {
+                        return createSlidingCameraEffect(`${workshop}/scaled_padded${index}.jpg`, `${workshop}/zoomeffect_${index}.mp4`, {
+                            duration: ele.duration,
+                            image_width: 1280,
+                            image_height: 720
+                        });
                     }
                 } else { //Dont zoom
                     return createVideoFromImage(`${workshop}/scaled_padded${index}.jpg`, ele.duration, `${workshop}/zoomeffect_${index}.mp4`);
@@ -99,6 +139,17 @@ var me = function () {
                             var str = '       ' + ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n       ");
 
                             fs.writeFile(`${workshop}/caption_${index}.txt`, str, (err) => {
+                                res(0);
+                            })
+                            break;
+                        case 3:
+
+                            var str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n");
+
+                            if (ele.caption.font_size === 36)
+                                str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n\n");
+
+                            fs.writeFile(`${workshop}/caption_${index}.txt`, str3, (err) => {
                                 res(0);
                             })
                             break;
@@ -156,8 +207,11 @@ var me = function () {
                     return `./fonts/Georgia/${style}.ttf`;
                     break;
                 case 'Times New Roman':
+                case 'TimesNewRoman':
                     return `./fonts/TimesNewRoman/${style}.ttf`;
+                    break;
                 case 'Open Sans':
+                case 'OpenSans':
                     return `./fonts/OpenSans/${style}.ttf`;
                     break;
             }
@@ -213,6 +267,32 @@ var me = function () {
                         console.log('options for drawTextFadeInOutEffect' + util.inspect(case_2_options));
                         return drawTextFadeInOutEffect(`${workshop}/zoomeffect_${index}.mp4`, `${workshop}/zt_${index}.mp4`, case_2_options);
                         break;
+                    case 3:
+
+                        //ele.tts.startTime = 0;
+                        var numOfLines = (ele.caption.text.match(/\n/g) || []).length + 1;
+                        var avgDuration = 8/numOfLines;
+                        if (ele.tts.enable)
+                            avgDuration = Math.floor((ele.tts.file_len + 2) / numOfLines);
+
+                        console.log(`ffmpeg::drawTextPromise::case 3: numOfLines: ${numOfLines}, avgDuration: ${avgDuration}`);
+
+                        var _block_displays_t = [];
+                        while (_block_displays_t.length < numOfLines)
+                            _block_displays_t.push(avgDuration);
+
+                        console.log(`ffmpeg::drawTextPromise::case 3: _block_displays_t: ${_block_displays_t}`);
+
+                        var case_3_options = {
+                            font_size: Number(ele.caption.fontsize),
+                            font_color: 'white',
+                            font_file: fontPath(ele.caption.font, ele.caption.bold, ele.caption.italic),
+                            text_file: `${workshop}/caption_${index}.txt`,
+                            block_h: 1,
+                            block_displays_t: _block_displays_t
+                        }
+                        return rollingTextEffect(`${workshop}/zoomeffect_${index}.mp4`, `${workshop}/zt_${index}.mp4`, case_3_options);
+                        break;
                     default:
                         return Promise.reslove;
                 }
@@ -224,18 +304,25 @@ var me = function () {
             var tts = images.map((ele, index) => {
 
                 //The first slide should be overlaid for the concat to success!
+                console.log(`ffmpeg::overLayTtsPromise::ele: ${ele}\n`);
+                console.log(`ffmpeg::overLayTtsPromise::index: ${index}\n`);
+                console.log(`ffmpeg::overLayTtsPromise::ele.tts: ${util.inspect(ele.tts)}\n`);
 
                 if (index === 0 && (ele.tts.enable === false || ele.tts.enable === undefined))
                     return overlaySilentToVideo(`${workshop}/zt_${index}.mp4`, `${workshop}/zts_${index}.mp4`);
 
                 if (ele.tts.enable === false || ele.tts.enable === undefined) return Promise.resolve(0);
 
+                console.log(`ffmpeg::overLayTtsPromise::ele.tts.startTime: ${ele.tts.startTime}\n`);
+
                 var _options = {
                     startAt: ele.tts.startTime,
-                    audioFileDuration: ele.tts.file_len,
+                    audioFileDuration: Math.round(ele.tts.file_len),
                     videoFileDuration: ele.duration,
                     output: `${workshop}/zts_${index}.mp4`
                 }
+
+                console.log(`ffmpeg::overLayTtsPromise::_options.startAt: ${_options.startAt}\n`);
 
                 return overlaySpeechToVideo(`${workshop}/zt_${index}.mp4`, ele.tts.file_path, _options);
             });
@@ -257,11 +344,32 @@ var me = function () {
 
         var createTransition = function () {
 
+            //            var firstStep = function () {
+            //                console.log('ffmpeg::createTransition:: transition First step starting');
+            //                var p = transitions.map((ele, index) => {
+            //                    return createVideoFromImage(`${workshop}/scaled_padded${index+1}.jpg`, ele.duration, `${workshop}/p${index}.mp4`);
+            //                });
+            //                return Promise.all(p);
+            //            };
+
             var firstStep = function () {
                 console.log('ffmpeg::createTransition:: transition First step starting');
+
                 var p = transitions.map((ele, index) => {
-                    return createVideoFromImage(`${workshop}/scaled_padded${index+1}.jpg`, ele.duration, `${workshop}/p${index}.mp4`);
+                    //workshop + '/zt_' + index+1 + '.mp4', workshop + '/first_frame_' +index + '.jpg'
+                    //workshop+ '/first_frame_' + index + '.jpg', ele.duration, workshop + '/p' + index + '.mp4'
+                    return new Promise((resolve, reject) => {
+                        captureFirstFrame(`${workshop}/zt_${index+1}.mp4`, `${workshop}/first_frame_${index}.jpg`)
+                            .then(() => {
+                                return createVideoFromImage(`${workshop}/first_frame_${index}.jpg`, ele.duration, `${workshop}/p${index}.mp4`);
+                            })
+                            .then(() => {
+                                return resolve(0);
+                            })
+                    });
+
                 });
+
                 return Promise.all(p);
             };
 
@@ -269,6 +377,7 @@ var me = function () {
                 console.log('ffmpeg::createTransition:: transition second Step starting');
                 var lf = transitions.map((ele, index) => {
                     console.log(`ffmpeg::createTransition::secondStep images[index].duration: ${images[index].duration}`);
+
                     return captureLastFrame(`${workshop}/zt_${index}.mp4`, images[index].duration, `${workshop}/lf${index}.jpg`);
                 });
                 return Promise.all(lf);
@@ -286,9 +395,11 @@ var me = function () {
                 console.log('transition Fourth step starting');
                 var transitionsRequest = transitions.map((ele, index) => {
                     console.log(`Transition ${index} is ${ele.effect.type}`);
-                    
+
                     if (innerVideoInfo.transitions[index] === undefined)
-                        innerVideoInfo.transitions[index] = {path:`${workshop}/transition${index}.mp4`};
+                        innerVideoInfo.transitions[index] = {
+                            path: `${workshop}/transition${index}.mp4`
+                        };
                     else
                         innerVideoInfo.transitions[index].path = `${workshop}/transition${index}.mp4`;
 
@@ -433,13 +544,18 @@ var me = function () {
         }
 
         return new Promise((resolve, reject) => {
-            scalePromise()
+            //            scalePromise()
+            //                .then(() => {
+            //                    console.log('Done Scaling');
+            //                    return padPromise();
+            //                })
+            scalePromise2()
                 .then(() => {
-                    console.log('Done Scaling');
-                    return padPromise();
+                    console.log('Done Scaling2');
+                    return cropPromise();
                 })
                 .then(() => {
-                    console.log('Done Padding');
+                    console.log('Done cropPromise');
                     return createZoomPromise();
                 })
                 .then(() => {
@@ -469,7 +585,7 @@ var me = function () {
                 .then(() => {
                     console.log('Done writeConcatTextFilePromise');
                     return concatAllPromise();
-                })                
+                })
                 .then(() => {
                     console.log('Done concatAllPromise');
                     if (details.audio.enable === true)
@@ -587,6 +703,20 @@ var me = function () {
         })
     }
 
+    var captureFirstFrame = function (path_to_video, path_to_output) {
+
+        console.log('ffmpeg::captureFirstFrame::path_to_output: ' + path_to_output);
+        return new Promise((resolve, reject) => {
+            //$ ffmpeg -i aaa.mp4 -vframes 1 ab.jpg
+            execFile(ffmpeg, ['-i', path_to_video, '-vframes', 1, path_to_output], (error, stdout, stderr) => {
+                if (error)
+                    reject(error);
+                else
+                    resolve(path_to_output);
+            });
+        })
+    }
+
     /*
     Create video from one image.
     Input: video_duration - in seconds.
@@ -670,7 +800,7 @@ var me = function () {
     
     Options must include: {
         font_size: int,
-        font_color: int,
+        font_color: string,
         font_file: path/to/file,
         text_file: path/to/textfile,
         block_h: 1 or 2 
@@ -683,7 +813,9 @@ var me = function () {
 
         var black_img = path_prefix + 'assets/black_img.jpg';
 
-        var temp_workshop = `${path_prefix}workshop/$temp_rolling_text_effect_{shortid.generate()}`;
+        var temp_workshop = `${path_prefix}workshop/$temp_rolling_text_effect_${shortid.generate()}`;
+
+        console.log(`ffmpeg::rollingTextEffect::temp_workshop ${temp_workshop}`);
 
         if (fs.existsSync(temp_workshop)) {
             //create new newFolderName..
@@ -701,50 +833,66 @@ var me = function () {
 
         console.log(`ffmpeg::rollingTextEffect::total_duration ${total_duration}`);
 
-        createVideoFromImage(black_img, total_duration, black_video)
-            .then((response) => {
+        return new Promise((resolve, reject) => {
 
-                // Create the effect. 
-                return new Promise((res, rej) => {
+            createVideoFromImage(black_img, total_duration, black_video)
+                .then((response) => {
 
-                    var y = generateY(options.font_size, options.block_displays_t, options.block_h);
+                    console.log(`ffmpeg::rollingTextEffect::822 then: response: ${response}`);
 
-                    execFile(ffmpeg, ['-i', black_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:fontfile=${options.font_file}:textfile=${options.text_file}:y=${y}`, `${temp_workshop}/text_on_transparent.mp4`], (err, stdout, stderr) => {
-                        if (err) {
-                            console.log(err);
-                            rej(err);
-                        }
-                    }).on('exit', (code, signal) => {
+                    // Create the effect. 
+                    return new Promise((res, rej) => {
 
-                        //                        fs.unlink(black_video, (err) => {
-                        //                            if (err) throw err;
-                        //                        });
-                        res(`${temp_workshop}/text_on_transparent.mp4`);
+                        var y = generateY(options.font_size, options.block_displays_t, options.block_h);
+
+                        execFile(ffmpeg, ['-i', black_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:fontfile=${options.font_file}:textfile=${options.text_file}:y=${y}`, `${temp_workshop}/text_on_transparent.mp4`], (err, stdout, stderr) => {
+                            console.log(`ffmpeg::rollingTextEffect::831 then: stdout: ${stdout}`);
+                            if (err) {
+                                console.log(err);
+                                rej(err);
+                            }
+                        }).on('exit', (code, signal) => {
+
+                            //                        fs.unlink(black_video, (err) => {
+                            //                            if (err) throw err;
+                            //                        });
+                            res(`${temp_workshop}/text_on_transparent.mp4`);
+                        });
                     });
-                });
 
-            })
-            .then((result) => {
+                })
+                .then((result) => {
 
-                //overlay over the original
-                return new Promise((resolve, reject) => {
+                    //overlay over the original
+                    return new Promise((resolve, reject) => {
 
-                    console.log(`ffmpeg::rollingTextEffect:: last part, resut: ${result}`);
+                        console.log(`ffmpeg::rollingTextEffect:: last part, result: ${result}`);
+                        console.log(`ffmpeg::rollingTextEffect:: last part, path_to_video: ${path_to_video}`);
 
-                    execFile(ffmpeg, ['-i', result, '-i', path_to_video, '-filter_complex', '[0]colorkey=color=#000000:similarity=0.1[keyed]; [1][keyed]overlay=x=10:y=H-1.5*h', path_to_output], (err, stdout, stderr) => {
-                        if (err) {
-                            console.log(err);
-                            reject(err);
-                        }
-                    }).on('exit', (code, signal) => {
+                        execFile(ffmpeg, ['-i', result, '-i', path_to_video, '-filter_complex', '[0]colorkey=color=#000000:similarity=0.1[keyed],[1][keyed]overlay=x=10:y=H-1.5*h', path_to_output], (err, stdout, stderr) => {
 
-                        //                        fs.unlink(`assets/temp.mp4`, (err) => {
-                        //                            if (err) throw err;
-                        //                        });
-                        resolve(0);
+                            console.log(`ffmpeg::rollingTextEffect:: after execFile, stdout: ${stdout}`);
+                            console.log(`ffmpeg::rollingTextEffect:: after execFile, stderr: ${stderr}`);
+                            if (err) {
+                                console.log(err);
+                                reject(err);
+                            }
+                        }).on('exit', (code, signal) => {
+                            console.log(`ffmpeg::rollingTextEffect:: on('exit', code: ${code}`);
+                            console.log(`ffmpeg::rollingTextEffect:: on('exit', signal: ${signal}`);
+                            //                        fs.unlink(`assets/temp.mp4`, (err) => {
+                            //                            if (err) throw err;
+                            //                        });
+                            return resolve(0);
+                        });
                     });
-                });
-            });
+                })
+                .then((result) => {
+
+                    resolve(result);
+                })
+        });
+
 
 
         function generateY(font_size, block_displays_t, block_h) {
@@ -944,13 +1092,24 @@ options: font_color, font_file, text_file
     */
     var overlaySpeechToVideo = function (video, audio, options) {
         return new Promise((resolve, reject) => {
+
+            console.log(`ffmpeg::overlaySpeechToVideo:: video: ${video}\n`);
+            console.log(`ffmpeg::overlaySpeechToVideo:: audio: ${audio}\n`);
+            console.log(`ffmpeg::overlaySpeechToVideo:: options: ${util.inspect(options)}\n`);
+            console.log('-------------------------------------------------\n');
+            console.log(`ffmpeg::overlaySpeechToVideo:: options.videoFileDuration - options.audioFileDuration - options.startAt: ${options.videoFileDuration - options.audioFileDuration - options.startAt}\n`);
+
             execFile(ffmpeg, ['-i', video, '-i', audio, '-f', 'lavfi', '-t', options.startAt, '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-f', 'lavfi', '-t', options.videoFileDuration - options.audioFileDuration - options.startAt, '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-filter_complex', "[2:a][1:a][3:a]concat=n=3:v=0:a=1[a]", '-map', '0:v', '-map', '[a]', '-shortest', '-y', options.output], (err, stdout, stdin) => {
+                console.log(`ffmpeg::overlaySpeechToVideo:: stdin: ${stdin}\n`);
+                console.log(`ffmpeg::overlaySpeechToVideo:: stdout: ${stdout}\n`);
                 if (err) {
-                    console.log(err);
+                    console.log(`ffmpeg::overlaySpeechToVideo:: err: ${err}\n`);
                     reject(err);
                 }
                 console.log(stdout);
             }).on('exit', (code, signal) => {
+                console.log(`ffmpeg::overlaySpeechToVideo::on exit:: code: ${code}\n`);
+                console.log(`ffmpeg::overlaySpeechToVideo::on exit:: signal: ${signal}\n`);
                 resolve(0);
             });
         });
@@ -959,7 +1118,7 @@ options: font_color, font_file, text_file
     var overlayAudioToVideo = function (video, audio, options) {
         //ffmpeg -i bg_music_0.mp3 -i movie.mp4 -filter_complex "[0:a][1:a]amerge,pan=stereo|c0=0.1*c0+c2:c1=0.1*c1+c2[out]" -map 1:v -map "[out]" -c:v copy output7.mp4
         return new Promise((resolve, reject) => {
-            execFile(ffmpeg, ['-i', audio, '-i', video, '-filter_complex', '[0:a][1:a]amerge,pan=stereo|c0=0.1*c0+c2:c1=0.1*c1+c2[out]', '-map', '1:v', '-map', '[out]', '-c:v', 'copy', options.output], (err, stdout, stdin) => {
+            execFile(ffmpeg, ['-i', audio, '-i', video, '-filter_complex', '[0:a][1:a]amerge,pan=stereo|c0=0.2*c0+0.5*c2:c1=0.2*c1+0.5*c2[out]', '-map', '1:v', '-map', '[out]', '-c:v', 'copy', options.output], (err, stdout, stdin) => {
                 if (err) {
                     console.log('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
                     reject(err);

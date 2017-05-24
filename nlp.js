@@ -1,7 +1,9 @@
 var util = require('util');
+var textrank = require('textrank-node');
 
 module.exports = {
-    analizeNLPhrase: analizeNLPhrase
+    analizeNLPhrase: analizeNLPhrase,
+    summerize: summerize
 }
 
 //This ugly shit should be taken from db
@@ -9,6 +11,15 @@ var model_make_list = ['BMW', 'Audi', 'Porsche', 'Lamborghini', 'Dodge', 'McLare
 var model_year_list = ['2016', '2017'];
 var model_name_list = ['7 Series', 'M4', 'TTS', 'A8', '918 Spyder', 'Aventador', 'Challenger', 'Charger', '650S Coupe', '650S Spider', 'S-Class', 'SL-Class', 'Flying Spur', 'Huracan', 'GT-R', 'Camaro', 'Panamera'];
 
+var model_make_and_name_con = model_make_list.concat(model_name_list);
+
+
+function summerize(text, n) {
+    
+    var summarizer = new textrank();
+    return summarizer.summarize(text, n);
+    
+}
 
 /**************************************************
  *   Get a natural text and return the appropriate object
@@ -23,6 +34,8 @@ function analizeNLPhrase(phrase) {
         case 0: //car
             return analizeCarPhrase(phrase);
             break;
+        case 3:
+            return analizeGeneralPhrase(phrase);
         default:
             return {};
             break;
@@ -33,8 +46,36 @@ function getTopic(phrase) {
 
     var ph_units = phrase.split(' ');
     console.log(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
+    
+    var result = 3;
+    if (ph_units.filter((ele)=>{
+        return model_make_and_name_con.includes(ele);
+    }).length > 0)
+        result = 0;
 
-    return 0; // 0 - Cars
+    return result; // 0 - Cars, // 3 anything else
+}
+/*
+function getTopic(phrase) {
+
+    var ph_units = phrase.split(' ');
+    console.log(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
+    
+    var result = 3;
+    if (ph_units.filter((ele)=>{
+        return model_make_and_name_con.includes(ele);
+    }).length > 0)
+        result = 0;
+
+    return result; // 0 - Cars, // 3 anything else
+}
+*/
+
+function analizeGeneralPhrase(phrase) {
+
+    return {
+        id:3
+    }
 }
 
 function analizeCarPhrase(text) {
@@ -50,6 +91,10 @@ function analizeCarPhrase(text) {
     
     if (car.model_make && car.model_name && car.model_year)
         car.id = 0;
+    else if (car.model_make && car.model_name)
+        car.id = 1;
+    else if (car.model_make)
+        car.id = 2;
     console.log(`nlp::analizeCarPhrase:: car returned is: ${util.inspect(car)}`)
     return car;
 }

@@ -23,6 +23,15 @@ var d = ['almost', 'about', 'around', 'some', 'roughly', 'just about', 'more or 
 
 var e = ['An avergae fuel consumption of', 'Consuming in average', 'With a fuel consumption of', 'Fuel consumption rates:'];
 
+var f = ['built for speed', 'may not be built for speed, but compensates in fuel consumption', 'agile and fast reacting', 'faster than imagination'];
+
+var g1 = ['built for speed', 'made to break the speed limit', 'might just get you in trouble with the law', 'will scare you at top speeds', 'can come up to speeds of a small plane', 'faster than imagination', 'as fast as a fighter jet', 'so fast it will blow your mind'];
+
+var g2 = ['agile and fast reacting', 'strong, quick and reactive.', 'sportive, elegant and quick'];
+
+var g3 = ['may not be built for speed, but compensates in fuel consumption', 'a more compact , economic choice', 'the economic vehicle of choise'];
+
+var h = ['As expected of', 'As you would expect of', 'As anticipated of', 'Not surprising for'];
 
 module.exports = {
 
@@ -48,7 +57,7 @@ module.exports = {
                     return c_reasonable[Math.floor(Math.random() * c_reasonable.length)];
                 } else if (options >= 150 && options < 350) {
                     return c_good[Math.floor(Math.random() * c_good.length)];
-                }  else {
+                } else {
                     return c_amazing[Math.floor(Math.random() * c_amazing.length)];
                 }
                 break;
@@ -57,6 +66,22 @@ module.exports = {
                 break;
             case 5:
                 return e[Math.floor(Math.random() * e.length)];
+                break;
+            case 6:
+                switch (options) {
+                    case 1:
+                        return g1[Math.floor(Math.random() * g1.length)];
+                        break;
+                    case 2:
+                        return g2[Math.floor(Math.random() * g2.length)];
+                        break;
+                    case 3:
+                        return g3[Math.floor(Math.random() * g3.length)];
+                        break;
+                }
+                break;
+            case 7:
+                return h[Math.floor(Math.random() * h.length)];
                 break;
         }
     }
