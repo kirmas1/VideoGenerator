@@ -74,7 +74,7 @@ function generate(phrase) {
                     });
                 } else if (topic.id === 1) {
                     //car.model_make && car.model_name
-                } else if (topic.id === 2) {
+                } else if (topic.id === 2 || topic.id === 3) {
                     //car.model_make
                     return new Promise((resolve, reject) => {
 
@@ -204,7 +204,7 @@ function createDataObjectGeneral(sentences, workshop) {
                     fontsize: 72,
                     bold: true,
                     italic: false,
-                    effect: 3,
+                    effect: 4,
                     //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
                     startTime: 0,
                     duration: 4 //Doesn't matter when tts is true! Or when effect=1 (Sliding from left)
@@ -383,7 +383,7 @@ function createDataObjectFromCar(car, workshop) {
             },
             tts: {
                 enable: true,
-                file_path: `${workshop}/2.mp3`,
+                file_path: `${workshop}/3.mp3`,
                 file_len: car.allTexts[2].tts_file_len,
                 startTime: 2
             },
