@@ -80,7 +80,7 @@ function generate(phrase) {
 
                         var sentences;
 
-                        console.log(`automatic::generate:: topic.id === 2`);
+                        console.log(`automatic::generate:: topic.id ${topic.id}`);
                         scraper
                             .getSentences(phrase, 5)
                             .then((result) => {
@@ -88,10 +88,10 @@ function generate(phrase) {
                                 sentences = result;
                                 console.log(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
 
-                                return scraper.scrapeImages(phrase, sentences.length, workshop, sentences.map((obj, index) => index))
+                                return scraper.scrapeImages(phrase, sentences.length, workshop, sentences.map((obj, index) => index));
                             })
-                            .then(() => {
-                                return createDataObjectGeneral(sentences, workshop);
+                            .then((files) => {
+                                return createDataObjectGeneral(files, sentences, workshop);
                             })
                             .then((details_for_ffmpeg) => {
                                 ffmpeg_details = details_for_ffmpeg;
@@ -186,7 +186,7 @@ function generateTTsAndSetCaptions(car, workshop) {
 }
 
 
-function createDataObjectGeneral(sentences, workshop) {
+function createDataObjectGeneral(files, sentences, workshop) {
 
     console.log(`automatic::createDataObjectGeneral:: sentences are: ${util.inspect(sentences)}`);
     return new Promise((resolve, reject) => {
@@ -197,7 +197,7 @@ function createDataObjectGeneral(sentences, workshop) {
 
             return {
                 type: 0,
-                fileName: `${index}.jpeg`,
+                fileName: files[index],
                 caption: {
                     text: sentence,
                     font: 'OpenSans',

@@ -130,7 +130,7 @@ function scrapeImages(topic, n, path, fileNames) {
                 return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
             })
 
-            Promise.all(downloadImagesPromise).then(res=>resolve(0));
+            Promise.all(downloadImagesPromise).then(res=>resolve(res));
         })
     });
 
@@ -147,7 +147,7 @@ function downloadFile(uri, filename) {
                 .pipe(fs.createWriteStream(filename))
                 .on('close', () => {
                     console.log(`scraper::downloadFile:: close pipe`);
-                    resolve(0)
+                    resolve(filename.substr( filename.lastIndexOf('/')+1 ));
                 });
         });
     });
