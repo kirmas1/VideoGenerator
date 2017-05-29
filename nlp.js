@@ -49,7 +49,9 @@ function getTopic(phrase) {
     
     var result = 3;
     if (ph_units.filter((ele)=>{
-        return model_make_and_name_con.includes(ele);
+        if (model_make_and_name_con.indexOf(ele) === -1)
+            return false;
+        return true;
     }).length > 0)
         result = 0;
 
