@@ -62,7 +62,7 @@ var me = function () {
                 var scale_requests = images.map(function (ele, index) {
                     return new Promise(function (resolve) {
 
-                        var filter = 'scale=\'if(gt(a,16/9),-1,1280)\':\'if(gt(a,16/9),720,-1)\'';
+                        var filter = 'scale=\'if(gt(a,16/9),-1,1280)\':\'if(gt(a,16/9),720,-1)\',setsar=sar=1\\1';
                         var child = execFile(ffmpeg, ['-i', workshop + '/' + ele.fileName, '-vf', filter, workshop + '/scaled_' + index + '.jpg'], (error, stdout, stderr) => {
                             if (error) {
                                 console.log(`ffmpeg::scalePromise2::err:: ${error}`);
