@@ -173,7 +173,7 @@ function scrapeImages(topic, n, path, fileNames) {
                     if (result.length < n && j < body.length-1) {
                         console.log(`inside if`);
                         request.head(body[j].contentUrl, function (err, res, bodyy) {
-                            if (res.headers['content-type'].startsWith('image'))
+                            if (res.headers['content-type'].startsWith('image/jpeg'))
                                 result.push(body[j]);
                             fn(++j, cb);
                         });
