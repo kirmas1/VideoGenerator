@@ -707,7 +707,7 @@ var me = function () {
         var image_width = options.image_width || 1280;
         var image_height = options.image_height || 640;
         var duration = options.duration || 10;
-        var delta_x = image_width * scale_factor * (1 - 1 / zoom_factor) / (25 * duration);
+        var delta_x = Math.round(image_width * scale_factor * (1 - 1 / zoom_factor) / (25 * duration));
 
         return new Promise((resolve, reject) => {
 
