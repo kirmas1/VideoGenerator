@@ -676,7 +676,7 @@ var me = function () {
     var createZoomInEffectVideo = function (path_to_image, image_width, image_height, duration, path_to_output) {
         console.log('createZoomInEffectVideo for: ' + path_to_image);
         return new Promise((resolve, reject) => {
-            var filter = '[0:v]scale=' + image_width * 6 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
+            var filter = '[0:v]scale=' + image_width * 6 + 'x' + image_height * 6 + ',format=yuv420p,setsar=sar=1\\1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
 
             execFile(ffmpeg, ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 console.log('finished ' + ' createZoomInEffectVideo for: ' + path_to_image);
@@ -711,7 +711,7 @@ var me = function () {
 
         return new Promise((resolve, reject) => {
 
-            var filter = `[0:v]scale=${image_width * scale_factor}x${image_height * scale_factor},format=yuv420p,setsar=1:1,zoompan=z=\'${zoom_factor}\':x=\'x+${delta_x}\':y=\'ih/2-(ih/zoom/2)\':d=${25 * duration},trim=duration= ${duration}[v]`;
+            var filter = `[0:v]scale=${image_width * scale_factor}x${image_height * scale_factor},format=yuv420p,setsar=sar=1\\1,zoompan=z=\'${zoom_factor}\':x=\'x+${delta_x}\':y=\'ih/2-(ih/zoom/2)\':d=${25 * duration},trim=duration= ${duration}[v]`;
 
             execFile(ffmpeg, ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 console.log('ffmpeg::createSlidingCameraEffect: finished ' + ' createZoomInEffectVideo for: ' + path_to_image);
@@ -730,7 +730,7 @@ var me = function () {
     var createZoomInEffectVideoNearCenter = function (path_to_image, image_width, image_height, duration, path_to_output) {
         console.log('createZoomInEffectVideoNearCenter for: ' + path_to_image);
         return new Promise((resolve, reject) => {
-            var filter = '[0:v]scale=' + image_width * 4 + 'x' + image_height * 6 + ',format=yuv420p,setsar=1:1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'if(gte(zoom,1.5),x,x+1/a)\':y=\'if(gte(zoom,1.5),y,y+1)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
+            var filter = '[0:v]scale=' + image_width * 4 + 'x' + image_height * 6 + ',format=yuv420p,setsar=sar=1\\1,zoompan=z=\'min(zoom+0.001,1.5)\':x=\'if(gte(zoom,1.5),x,x+1/a)\':y=\'if(gte(zoom,1.5),y,y+1)\':d=' + 25 * duration + ',trim=duration=' + duration + '[v]';
 
             execFile(ffmpeg, ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 console.log('finished ' + ' createZoomInEffectVideoNearCenter for: ' + path_to_image);
@@ -807,7 +807,7 @@ var me = function () {
     */
     var createVideoFromImage = function (path_to_image, duration, path_to_output) {
         return new Promise((resolve, reject) => {
-            execFile(ffmpeg, ['-loop', 1, '-i', path_to_image, '-vf', 'format=yuv420p,setsar=1:1', '-t', duration, path_to_output], (error, stdout, stderr) => {
+            execFile(ffmpeg, ['-loop', 1, '-i', path_to_image, '-vf', 'format=yuv420p,setsar=sar=1\\1', '-t', duration, path_to_output], (error, stdout, stderr) => {
                 if (error)
                     reject(error);
                 else
