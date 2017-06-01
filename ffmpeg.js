@@ -50,6 +50,7 @@ var me = function () {
                             if (error) {
                                 throw error;
                             }
+                            console.log(`ffmpeg::scalePromise::stderr: ${stderr}`);
                             resolve(0);
                         });
                     });
@@ -68,6 +69,7 @@ var me = function () {
                                 console.log(`ffmpeg::scalePromise2::err:: ${error}`);
                                 //throw error;
                             }
+                            console.log(`ffmpeg::scalePromise2::stderr: ${stderr}`);
                             resolve(0);
                         });
                     });
@@ -84,6 +86,7 @@ var me = function () {
                         if (error) {
                             throw error;
                         }
+                        console.log(`ffmpeg::cropPromise::stderr: ${stderr}`);
                         resolve(0);
                     });
                 });
@@ -99,6 +102,7 @@ var me = function () {
                         if (error) {
                             throw error;
                         }
+                        console.log(`ffmpeg::padPromise::stderr: ${stderr}`);
                         resolve(0);
                     });
                 });
@@ -561,6 +565,7 @@ var me = function () {
                         if (error) {
                             throw error;
                         }
+                        console.log(`ffmpeg::concatAllPromise::stderr: ${stderr}`);
                         innerVideoInfo.final_video_path = workshop + '/final_' + newFolderName + '.mp4';
                         resolve(0);
                     });
@@ -683,6 +688,7 @@ var me = function () {
                 if (error)
                     reject(error);
                 else
+                    console.log(`ffmpeg::createZoomInEffectVideo::stderr: ${stderr}`);
                     resolve(path_to_output);
             });
         })
@@ -719,6 +725,7 @@ var me = function () {
                     console.log('ffmpeg::createSlidingCameraEffect: rejecting, error ' + ' : ' + error);
                     reject(error);
                 } else
+                    console.log(`ffmpeg::createSlidingCameraEffect::stderr: ${stderr}`);
                     resolve(path_to_output);
             });
         })
