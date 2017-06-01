@@ -194,7 +194,7 @@ function downloadFile(uri, filename) {
 //            console.log('----------------------------------------------');
 //            console.log('content-type:', res.headers['content-type']);
 //            console.log('content-length:', res.headers['content-length']);
-//            console.log('uri:', uri);
+            console.log('scraper::downloadFile::uri:', uri);
 //            console.log('----------------------------------------------');
 //
             request(uri)
