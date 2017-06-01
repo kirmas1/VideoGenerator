@@ -10,7 +10,7 @@ summerize the first p of wikipedia and returns array of the n most important sen
 function getSentences(topic, n) {
 
     return new Promise((resolve, reject) => {
-        
+
         var result = [];
         console.log(`scraper::getSentences:: topic is: ${topic} \n n is ${n}`);
 
@@ -106,12 +106,42 @@ function getSentences(topic, n) {
 /*
 Download images from the internet using BingAPI to get the resources. 
 */
+//function scrapeImages(topic, n, path, fileNames) {
+//    
+//    return new Promise((resolve, reject) => {
+//
+//        request({
+//            uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n}`,
+//            method: "GET",
+//            headers: {
+//                'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491'
+//            },
+//
+//        }, function (err, res, body) {
+//
+//            if (res && res.statusCode !== 200) {
+//                err = new Error(body);
+//            } else {
+//                // Parse body, if body
+//                body = typeof body === 'string' ? JSON.parse(body) : body;
+//            }
+//
+//            var downloadImagesPromise = body.value.map((ele, index) => {
+//                return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
+//            })
+//
+//            Promise.all(downloadImagesPromise).then(res=>resolve(res));
+//        })
+//    });
+//
+//}
+
 function scrapeImages(topic, n, path, fileNames) {
-    
+
     return new Promise((resolve, reject) => {
 
         request({
-            uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n}`,
+            uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n*2}`,
             method: "GET",
             headers: {
                 'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491'
@@ -126,33 +156,54 @@ function scrapeImages(topic, n, path, fileNames) {
                 body = typeof body === 'string' ? JSON.parse(body) : body;
             }
 
-            var downloadImagesPromise = body.value.map((ele, index) => {
-                return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
-            })
+            sanitize(body.value, n).then((sanitizedBodyValue) => {
+                var downloadImagesPromise = sanitizedBodyValue.map((ele, index) => {
+                    return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
+                })
 
-            Promise.all(downloadImagesPromise).then(res=>resolve(res));
+                Promise.all(downloadImagesPromise).then(res => resolve(res));
+            });
         })
-    });
 
+        function sanitize(body, n) {
+            return new Promise((resolve, reject) => {
+                var result = [];
+
+                var fn = function (j, cb) {
+                    if (result.length < n && j < body.length-1) {
+                        console.log(`inside if`);
+                        request.head(body[j].contentUrl, function (err, res, bodyy) {
+                            if (res.headers['content-type'].startsWith('image'))
+                                result.push(body[j]);
+                            fn(++j, cb);
+                        });
+                    } else cb(result);
+                    
+                }
+                fn(0, function(r){
+                    resolve(r)});
+            });
+        }
+    });
 }
 
 function downloadFile(uri, filename) {
 
     return new Promise((resolve, reject) => {
-        request.head(uri, function (err, res, body) {
-            console.log('----------------------------------------------');
-            console.log('content-type:', res.headers['content-type']);
-            console.log('content-length:', res.headers['content-length']);
-            console.log('uri:', uri);
-            console.log('----------------------------------------------');
-
+//        request.head(uri, function (err, res, body) {
+//            console.log('----------------------------------------------');
+//            console.log('content-type:', res.headers['content-type']);
+//            console.log('content-length:', res.headers['content-length']);
+//            console.log('uri:', uri);
+//            console.log('----------------------------------------------');
+//
             request(uri)
                 .pipe(fs.createWriteStream(filename))
                 .on('close', () => {
                     console.log(`scraper::downloadFile:: close pipe`);
-                    resolve(filename.substr( filename.lastIndexOf('/')+1 ));
+                    resolve(filename.substr(filename.lastIndexOf('/') + 1));
                 });
-        });
+//        });
     });
 };
 
