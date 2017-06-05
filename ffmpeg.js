@@ -783,9 +783,8 @@ var me = function () {
                 var nb_frames = stdout.split(/\r?\n/).find((ele) => {
                     return ele.startsWith('nb_frames')
                 }).split('=')[1];
-                //ffmpeg -i IN.AVI -vf "select='eq(n,LAST_FRAME_INDEX)'" -vframes 1 LAST_FRAME.PNG
                 execFile('ffmpeg', ['-i', path_to_video, '-vf', `select='eq(n\,${nb_frames -1})'`, '-vframes', 1, path_to_output], (error, stdout, stderr) => {
-
+                    console.log('captureLastFrame2:: done second execFile');
                     if (error)
                         reject(error);
                     else
