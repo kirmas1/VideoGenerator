@@ -210,7 +210,7 @@ module.exports = (function () {
                 model_year: 2017
             }
         */
-        getCarSpecs: getCarSpecs,
+        //getCarSpecs: getCarSpecs,
         getCarPictures: getCarPictures
     }
 

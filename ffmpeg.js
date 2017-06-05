@@ -777,7 +777,7 @@ var me = function () {
 
             execFile(ffprobe, ['-show_streams', path_to_video], (error, stdout, stderr) => {
 
-                var nb_frames = stdout.split('\r\n').find((ele) => {
+                var nb_frames = stdout.split(/\r?\n/).find((ele) => {
                     return ele.startsWith('nb_frames')
                 }).split('=')[1];
                 //ffmpeg -i IN.AVI -vf "select='eq(n,LAST_FRAME_INDEX)'" -vframes 1 LAST_FRAME.PNG
