@@ -438,7 +438,7 @@ var me = function () {
                     console.log(`ffmpeg::createTransition::secondStep images[index].duration: ${images[index].duration}`);
 
                     //                    return captureLastFrame(`${workshop}/zt_${index}.mp4`, images[index].duration, `${workshop}/lf${index}.jpg`);
-                    
+
                     return captureLastFrame2(`${workshop}/zt_${index}.mp4`, `${workshop}/lf${index}.jpg`);
                 });
                 return Promise.all(lf);
@@ -690,7 +690,7 @@ var me = function () {
                     reject(error);
                 else
                     console.log(`ffmpeg::createZoomInEffectVideo::stderr: ${stderr}`);
-                    resolve(path_to_output);
+                resolve(path_to_output);
             });
         })
     }
@@ -727,7 +727,7 @@ var me = function () {
                     reject(error);
                 } else
                     console.log(`ffmpeg::createSlidingCameraEffect::stderr: ${stderr}`);
-                    resolve(path_to_output);
+                resolve(path_to_output);
             });
         })
     }
@@ -774,9 +774,12 @@ var me = function () {
     var captureLastFrame2 = function (path_to_video, path_to_output) {
 
         return new Promise((resolve, reject) => {
-
+            console.log(`captureLastFrame2::ffprobe = ${ffprobe} path_to_video = ${path_to_video} path_to_output = ${path_to_output}`);
             execFile(ffprobe, ['-show_streams', path_to_video], (error, stdout, stderr) => {
-
+                console.log(`captureLastFrame2:: stdout.split(/\r?\n/) = ${stdout.split(/\r?\n/)}`);
+                console.log(`captureLastFrame2:: stdout.split(/\r?\n/).find... = ${stdout.split(/\r?\n/).find((ele) => {
+                    return ele.startsWith('nb_frames')
+                })}`);
                 var nb_frames = stdout.split(/\r?\n/).find((ele) => {
                     return ele.startsWith('nb_frames')
                 }).split('=')[1];
