@@ -437,9 +437,9 @@ var me = function () {
                 var lf = transitions.map((ele, index) => {
                     console.log(`ffmpeg::createTransition::secondStep images[index].duration: ${images[index].duration}`);
 
-                    //                    return captureLastFrame(`${workshop}/zt_${index}.mp4`, images[index].duration, `${workshop}/lf${index}.jpg`);
+                    return captureLastFrame(`${workshop}/zt_${index}.mp4`, images[index].duration, `${workshop}/lf${index}.jpg`);
 
-                    return captureLastFrame2(`${workshop}/zt_${index}.mp4`, `${workshop}/lf${index}.jpg`);
+                    //                    return captureLastFrame2(`${workshop}/zt_${index}.mp4`, `${workshop}/lf${index}.jpg`);
                 });
                 return Promise.all(lf);
             };
@@ -788,10 +788,9 @@ var me = function () {
                     if (error) {
                         console.log(`captureLastFrame2:: second execFile:: error = ${error}`);
                         reject(error);
-                    }
-                    else {
+                    } else {
                         console.log(`captureLastFrame2:: second execFile:: no error, resolving ${path_to_output}`);
-                        resolve(path_to_output);                        
+                        resolve(path_to_output);
                     }
                 })
 
