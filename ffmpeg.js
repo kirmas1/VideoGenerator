@@ -785,10 +785,14 @@ var me = function () {
                 }).split('=')[1];
                 execFile('ffmpeg', ['-i', path_to_video, '-vf', `select='eq(n\,${nb_frames -1})'`, '-vframes', 1, path_to_output], (error, stdout, stderr) => {
                     console.log('captureLastFrame2:: done second execFile');
-                    if (error)
+                    if (error) {
+                        console.log(`captureLastFrame2:: second execFile:: error = ${error}`);
                         reject(error);
-                    else
-                        resolve(path_to_output);
+                    }
+                    else {
+                        console.log(`captureLastFrame2:: second execFile:: no error, resolving ${path_to_output}`);
+                        resolve(path_to_output);                        
+                    }
                 })
 
             });
