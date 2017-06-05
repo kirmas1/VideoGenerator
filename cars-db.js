@@ -4,71 +4,43 @@ var s3 = new AWS.S3();
 var carsPicturesBucket = 'car-pictures-data';
 var carsKeyPrefix = 'SelectedModels';
 const util = require('util');
-var Client = require('mariasql');
+//var Client = require('mariasql');
 
 
 
 module.exports = (function () {
 
-    var c = new Client({
-        host: 'carspecsdb.cb2xddqsnpgk.us-west-2.rds.amazonaws.com',
-        user: 'admin',
-        password: 'sasa8647'
-    });
+//    var c = new Client({
+//        host: 'carspecsdb.cb2xddqsnpgk.us-west-2.rds.amazonaws.com',
+//        user: 'admin',
+//        password: 'sasa8647'
+//    });
 
-    var getCarSpecs = function (car) {
-
-        console.log('cars-db::getCarSpecs:: car is: ' + util.inspect(car));
-
-        var prep = c.prepare('SELECT * FROM cars_specs.cars_specs WHERE \
-                    model_make_id = :model_make_id AND \
-                    model_name = :model_name AND \
-                    model_year = :model_year');
-
-        return new Promise((resolve, reject) => {
-            c.query(prep({
-                model_make_id: car.model_make,
-                model_name: car.model_name,
-                model_year: car.model_year
-            }), function (err, rows) {
-                if (err) {
-                    console.log(`cars-db::getCarSpecs::query err is: ${err}`);
-                    reject(err);
-                }
-                console.log(`cars-db::getCarSpecs::query rows[0] is: ${rows[0]}`);
-                resolve(rows[0]);
-            });
-
-            //c.end();
-
-        });
-
-        //                return new Promise((resolve, reject) => {
-        //                    if (car.model_make === 'Audi') {
-        //                        resolve({
-        //                            model_drive: 'AWD',
-        //                            model_transmission_type: 'Automated manual drive',
-        //                            model_body: 'two seater',
-        //                            model_engine_cc: 5200,
-        //                            model_engine_power_ps: 570,
-        //                            model_engine_torque_nm: 500,
-        //                            model_lkm_mixed: 5.2,
-        //
-        //                        });
-        //                    } else resolve({
-        //                        model_drive: 'AWD',
-        //                        model_transmission_type: 'Automated manual drive',
-        //                        model_body: 'four seater',
-        //                        model_engine_cc: 4000,
-        //                        model_engine_power_ps: 520,
-        //                        model_engine_torque_nm: 450,
-        //                        model_lkm_mixed: 5.4,
-        //                    });
-        //                }
-        //
-        //            )
-
-    }
+//    var getCarSpecs = function (car) {
+//
+//        console.log('cars-db::getCarSpecs:: car is: ' + util.inspect(car));
+//
+//        var prep = c.prepare('SELECT * FROM cars_specs.cars_specs WHERE \
+//                    model_make_id = :model_make_id AND \
+//                    model_name = :model_name AND \
+//                    model_year = :model_year');
+//
+//        return new Promise((resolve, reject) => {
+//            c.query(prep({
+//                model_make_id: car.model_make,
+//                model_name: car.model_name,
+//                model_year: car.model_year
+//            }), function (err, rows) {
+//                if (err) {
+//                    console.log(`cars-db::getCarSpecs::query err is: ${err}`);
+//                    reject(err);
+//                }
+//                console.log(`cars-db::getCarSpecs::query rows[0] is: ${rows[0]}`);
+//                resolve(rows[0]);
+//            });
+//            //c.end();
+//        });
+//    }
 
     /*
         car = {
