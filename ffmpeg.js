@@ -4,6 +4,7 @@ var os = require("os");
 var util = require('util');
 var configuration = require('./configuration');
 var ffmpeg = configuration.FFMPEG_PATH;
+var ffprobe = configuration.FFPROBE_PATH;
 var shortid = require('shortid');
 
 var path_prefix = configuration.OS == 'linux' ? './' : '';
@@ -774,7 +775,7 @@ var me = function () {
 
         return new Promise((resolve, reject) => {
 
-            execFile('ffprobe', ['-show_streams', path_to_video], (error, stdout, stderr) => {
+            execFile(ffprobe, ['-show_streams', path_to_video], (error, stdout, stderr) => {
 
                 var nb_frames = stdout.split('\r\n').find((ele) => {
                     return ele.startsWith('nb_frames')
