@@ -12,14 +12,30 @@ var ffmpeg = require('./ffmpeg');
 var os = require("os");
 var url = require('url');
 var automatic = require('./automatic');
+ var config = require('./configuration');
+var winston = require('winston');
 
-var log_file = fs.createWriteStream(__dirname + '/logs/debug2327.log', {flags : 'w'});
-var log_stdout = process.stdout;
+winston.add(winston.transports.File, {
+    filename: config.LOG_PATH,
+    maxsize: 10000000,
+    json: false,
+    prettyPrint: true
+});
 
-console.log = function(d) { //
-  log_file.write(util.format(d) + '\n');
-  log_stdout.write(util.format(d) + '\n');
-};
+var logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.File)({
+      name: 'info-file',
+      filename: 'filelog-info.log',
+      level: 'info'
+    }),
+    new (winston.transports.File)({
+      name: 'error-file',
+      filename: 'filelog-error.log',
+      level: 'error'
+    })
+  ]
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -40,7 +56,7 @@ var upload = multer({
 })
 
 app.post('/test', function (req, res) {
-    console.log('-----mmmmm------server');
+    winston.info('-----mmmmm------server');
     var form = new formidable.IncomingForm();
     var newFolderName = shortid.generate();
     var data;
@@ -53,10 +69,10 @@ app.post('/test', function (req, res) {
     form.uploadDir = './workshop/' + newFolderName;
 
     form.on('file', function (name, file) {
-        console.log('+++----+++');
-        console.log('file.path is: ' + file.path);
-        console.log('file.name is: ' + file.name);
-        console.log('+++----+++');
+        winston.info('+++----+++');
+        winston.info('file.path is: ' + file.path);
+        winston.info('file.name is: ' + file.name);
+        winston.info('+++----+++');
         fs.rename(file.path, form.uploadDir + "/" + file.name);
     });
     form.on('field', function (name, value) {
@@ -67,7 +83,7 @@ app.post('/test', function (req, res) {
 
     form.on('end', function () {
         //start process the files
-        console.log("end uploading");
+        winston.info("end uploading");
         ffmpeg.createCustom(data, newFolderName).then((result)=> {
             res.end(result);
         });
@@ -79,14 +95,14 @@ app.post('/test', function (req, res) {
 app.get('/autogen', function(req, res){
 
     var url_parts = url.parse(req.url,true);
-    console.log('app.get::url_parts.query.q is ' + url_parts.query.q);
+    winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
         
     //res.end(url_parts.query.q);
     
     automatic.generate(url_parts.query.q)
         .then((result) => {
         
-        console.log(`server.js::app.get(/autogen):: result is: ${util.inspect(result)}`);
+        winston.info(`server.js::app.get(/autogen):: result is: ${util.inspect(result)}`);
         
         res.end(result);
     });
@@ -99,5 +115,5 @@ app.get('*', function (req, res) {
 
 
 var server = app.listen(3000, function () {
-    console.log('Server listening on port 3000');
+    winston.info('Server listening on port 3000');
 });

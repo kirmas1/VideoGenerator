@@ -9,10 +9,11 @@ var configuration = require('./configuration');
 var mp3Duration = require('mp3-duration');
 var nlp = require('./nlp');
 var scraper = require('./scraper');
+var winston = require('winston');
 
 function generate(phrase) {
 
-    console.log(`automatic::generate::start`);
+    winston.info(`automatic::generate::start`);
 
     var new_folder = createNewWorkShopFolder();
     var ffmpeg_details;
@@ -24,13 +25,13 @@ function generate(phrase) {
         Promise.resolve()
             .then(res => {
 
-                console.log(`automatic::generate:: call nlp.analizeNLPhrase(phrase)`);
+                winston.info(`automatic::generate:: call nlp.analizeNLPhrase(phrase)`);
 
                 return nlp.analizeNLPhrase(phrase);
             })
             .then(topic => {
 
-                console.log(`automatic::generate:: nlp.analizeNLPhrase(phrase) return value: ${util.inspect(topic)}`);
+                winston.info(`automatic::generate:: nlp.analizeNLPhrase(phrase) return value: ${util.inspect(topic)}`);
 
                 /***************************************
                  *
@@ -44,21 +45,21 @@ function generate(phrase) {
 
                         Promise.resolve()
                             .then(res => {
-                                console.log(`automatic::generate::calling create car`);
+                                winston.info(`automatic::generate::calling create car`);
                                 return createCar(topic)
                             })
                             .then((car) => {
-                                console.log(`automatic::generate::calling getCarImages`);
+                                winston.info(`automatic::generate::calling getCarImages`);
                                 return getCarImages(car, workshop);
 
                             })
                             .then((car) => {
-                                console.log(`automatic::generate::calling generateTTsAndSetCaptions`);
+                                winston.info(`automatic::generate::calling generateTTsAndSetCaptions`);
                                 return generateTTsAndSetCaptions(car, workshop);
 
                             })
                             .then((car) => {
-                                console.log(`automatic::generate::calling createDataObjectFromCar`);
+                                winston.info(`automatic::generate::calling createDataObjectFromCar`);
                                 return createDataObjectFromCar(car, workshop); //for ffmpeg
 
                             })
@@ -68,7 +69,7 @@ function generate(phrase) {
 
                             })
                             .catch((err) => {
-                                console.log(err);
+                                winston.info(err);
                                 reject(err);
                             });
                     });
@@ -80,13 +81,13 @@ function generate(phrase) {
 
                         var sentences;
 
-                        console.log(`automatic::generate:: topic.id ${topic.id}`);
+                        winston.info(`automatic::generate:: topic.id ${topic.id}`);
                         scraper
                             .getSentences(phrase, 5)
                             .then((result) => {
 
                                 sentences = result;
-                                console.log(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
+                                winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
 
                                 return scraper.scrapeImages(phrase, sentences.length, workshop, sentences.map((obj, index) => index));
                             })
@@ -99,7 +100,7 @@ function generate(phrase) {
 
                             })
                             .catch((err) => {
-                                console.log(err);
+                                winston.info(err);
                                 reject(err);
                             });
                     });
@@ -110,9 +111,9 @@ function generate(phrase) {
             .then(res => {
                 if (res === -1) return 'under constructions';
 
-                console.log(`automatic::generate:: prepare(topic) return value: ${res}`);
-                console.log(`automatic::generate:: new_folder value: ${new_folder}`);
-                console.log(`automatic::generate:: ffmpeg_details value: ${util.inspect(ffmpeg_details)}`);
+                winston.info(`automatic::generate:: prepare(topic) return value: ${res}`);
+                winston.info(`automatic::generate:: new_folder value: ${new_folder}`);
+                winston.info(`automatic::generate:: ffmpeg_details value: ${util.inspect(ffmpeg_details)}`);
 
                 return ffmpeg.createCustom(ffmpeg_details, new_folder);
             })
@@ -126,7 +127,7 @@ function generate(phrase) {
 Get car images from S3
 */
 function getCarImages(car, workshop) {
-    console.log('automatic:: getCarImages:: car is: ' + util.inspect(car));
+    winston.info('automatic:: getCarImages:: car is: ' + util.inspect(car));
     return new Promise((resolve, reject) => {
         db.getCarPictures(car, {
                 total_count: 5,
@@ -142,11 +143,11 @@ function getCarImages(car, workshop) {
 
 function generateTTsAndSetCaptions(car, workshop) {
 
-    console.log('automatic::generateTTsAndSetCaptions::');
+    winston.info('automatic::generateTTsAndSetCaptions::');
 
     var allTexts = car.generateAllTexts();
 
-    console.log(`automatic::generateTTsAndSetCaptions::allTexts: ${util.inspect(allTexts)}`);
+    winston.info(`automatic::generateTTsAndSetCaptions::allTexts: ${util.inspect(allTexts)}`);
 
     var tts_options = allTexts.map((item, index) => {
         return {
@@ -170,7 +171,7 @@ function generateTTsAndSetCaptions(car, workshop) {
                         mp3Duration(ele.path, function (err, duration) {
                             if (err) {
                                 car.allTexts[index].tts_file_len = -1;
-                                console.log(`automatic::generateTTsAndSetCaptions::mp3Duration thorw error: ${err}`);
+                                winston.info(`automatic::generateTTsAndSetCaptions::mp3Duration thorw error: ${err}`);
                             }
                             car.allTexts[index].tts_file_len = duration;
                             res(0);
@@ -181,14 +182,14 @@ function generateTTsAndSetCaptions(car, workshop) {
 
                 Promise.all(_map).then(response => resolve(car));
             }) //end of then
-            .catch((err) => console.log(`automatic::generateTTsAndSetCaptions::tts.synyhesize thorw error: ${err}`));
+            .catch((err) => winston.info(`automatic::generateTTsAndSetCaptions::tts.synyhesize thorw error: ${err}`));
     }); //end of Promise
 }
 
 
 function createDataObjectGeneral(files, sentences, workshop) {
 
-    console.log(`automatic::createDataObjectGeneral:: sentences are: ${util.inspect(sentences)}`);
+    winston.info(`automatic::createDataObjectGeneral:: sentences are: ${util.inspect(sentences)}`);
     return new Promise((resolve, reject) => {
 
         var slidesInfo = [];
@@ -258,7 +259,7 @@ function createDataObjectGeneral(files, sentences, workshop) {
 This function should be called when all the images and text and ready. So it can create details object for ffmpeg.createCustom
 */
 function createDataObjectFromCar(car, workshop) {
-    console.log('automatic:: createDataObjectFromCar:: car is: ' + util.inspect(car));
+    winston.info('automatic:: createDataObjectFromCar:: car is: ' + util.inspect(car));
     return new Promise((res, rej) => {
         var slide0 = {
             type: 0,
@@ -427,7 +428,7 @@ function createDataObjectFromCar(car, workshop) {
             }
         };
 
-        console.log('automatic:: createDataObjectFromCar:: resolving: ' + util.inspect({
+        winston.info('automatic:: createDataObjectFromCar:: resolving: ' + util.inspect({
             videoName: 'Unknown',
             audio: {
                 enable: true,

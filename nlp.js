@@ -1,5 +1,6 @@
 var util = require('util');
 var textrank = require('textrank-node');
+var winston = require('winston');
 
 module.exports = {
     analizeNLPhrase: analizeNLPhrase,
@@ -27,7 +28,7 @@ function summerize(text, n) {
  **************************************************/
 function analizeNLPhrase(phrase) {
 
-    console.log(`nlp::analizeNLPhrase:: phrase is: ${phrase}`);
+    winston.info(`nlp::analizeNLPhrase:: phrase is: ${phrase}`);
 
     switch (getTopic(phrase)) {
 
@@ -45,7 +46,7 @@ function analizeNLPhrase(phrase) {
 function getTopic(phrase) {
 
     var ph_units = phrase.split(' ');
-    console.log(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
+    winston.info(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
     
     var result = 3;
     if (ph_units.filter((ele)=>{
@@ -61,7 +62,7 @@ function getTopic(phrase) {
 function getTopic(phrase) {
 
     var ph_units = phrase.split(' ');
-    console.log(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
+    winston.info(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
     
     var result = 3;
     if (ph_units.filter((ele)=>{
@@ -97,13 +98,13 @@ function analizeCarPhrase(text) {
         car.id = 1;
     else if (car.model_make)
         car.id = 2;
-    console.log(`nlp::analizeCarPhrase:: car returned is: ${util.inspect(car)}`)
+    winston.info(`nlp::analizeCarPhrase:: car returned is: ${util.inspect(car)}`)
     return car;
 }
 
 function trimAndReturnModelMake(arr) {
 
-    console.log(`nlp::trimAndReturnModelMake:: arr is: ${arr}`);
+    winston.info(`nlp::trimAndReturnModelMake:: arr is: ${arr}`);
     var ans = '';
     for (var i = 0; i < arr.length; i++) {
         (function f(i) {
@@ -112,7 +113,7 @@ function trimAndReturnModelMake(arr) {
                 ans = arr[i];
                 arr.splice(i, 1);
 
-                console.log(`nlp::trimAndReturnModelMake:: found ans = : ${ans}, i = ${i}`);
+                winston.info(`nlp::trimAndReturnModelMake:: found ans = : ${ans}, i = ${i}`);
             }
         }(i));
     }
@@ -123,14 +124,14 @@ function trimAndReturnModelMake(arr) {
 function trimAndReturnModelYear(arr) {
 
     //TO DO Find better algo 
-    console.log(`nlp::trimAndReturnModelYear:: arr is: ${arr}`);
+    winston.info(`nlp::trimAndReturnModelYear:: arr is: ${arr}`);
     var ans = '';
     for (var i = 0; i < arr.length; i++) {
         (function f(i) {
             if (0 <= model_year_list.indexOf(arr[i])) {
                 ans = arr[i];
                 arr.splice(i, 1);
-                console.log(`nlp::trimAndReturnModelYear:: found ans = : ${ans}`);
+                winston.info(`nlp::trimAndReturnModelYear:: found ans = : ${ans}`);
             }
         }(i));
     }
@@ -140,7 +141,7 @@ function trimAndReturnModelYear(arr) {
 
 function trimAndReturnModelName(arr) {
 
-    console.log(`nlp::trimAndReturnModelName:: arr is: ${arr}`)
+    winston.info(`nlp::trimAndReturnModelName:: arr is: ${arr}`)
         //Find better algo 
     var ans = '';
     for (var i = 0; i < arr.length; i++) {
@@ -148,7 +149,7 @@ function trimAndReturnModelName(arr) {
             if (0 <= model_name_list.indexOf(arr[i])) {
                 ans = arr[i];
                 arr.splice(i, 1);
-                console.log(`nlp::trimAndReturnModelName:: found ans = : ${ans}`);
+                winston.info(`nlp::trimAndReturnModelName:: found ans = : ${ans}`);
                 return ans;
             }
         }(i));
@@ -159,7 +160,7 @@ function trimAndReturnModelName(arr) {
             if (0 <= model_name_list.indexOf(arr[j] + ' ' + arr[j + 1])) {
                 ans = arr[j] + ' ' + arr[j + 1];
                 arr.splice(i, 2);
-                console.log(`nlp::trimAndReturnModelName:: found ans = : ${ans}`);
+                winston.info(`nlp::trimAndReturnModelName:: found ans = : ${ans}`);
                 return ans;
             }
         }(j));

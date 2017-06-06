@@ -1,6 +1,6 @@
 var AWS = require('aws-sdk');
-const Fs = require('fs')
-
+const Fs = require('fs');
+var winston = require('winston');
 
 var polly = new AWS.Polly({
     signatureVersion: 'v4',

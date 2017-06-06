@@ -3,6 +3,7 @@ var osmosis = require('osmosis');
 const request = require('request');
 const fs = require('fs');
 const util = require('util');
+var winston = require('winston');
 
 /*
 summerize the first p of wikipedia and returns array of the n most important sentences
@@ -12,7 +13,7 @@ function getSentences(topic, n) {
     return new Promise((resolve, reject) => {
 
         var result = [];
-        console.log(`scraper::getSentences:: topic is: ${topic} \n n is ${n}`);
+        winston.info(`scraper::getSentences:: topic is: ${topic} \n n is ${n}`);
 
         osmosis
             .get(`https://en.wikipedia.org/wiki/${topic}`)
@@ -56,7 +57,7 @@ function getSentences(topic, n) {
                 };
 
                 if (data.all_p.length === 0)
-                    console.log(`scraper::getSentences:: Didnt found anything on wiki`);
+                    winston.info(`scraper::getSentences:: Didnt found anything on wiki`);
 
                 var filtered_p_s = data.all_p.filter(function (word) {
                     return word.length > 0;
@@ -69,13 +70,13 @@ function getSentences(topic, n) {
                     if (filtered_p_s[firstPIndex].toLowerCase().indexOf(topic.toLowerCase()) >= 0)
                         break;
                     if (filtered_p_s.length - 1 === firstPIndex) {
-                        console.log(`scraper::getSentences::Topic didnt match any P in wiki. `);
+                        winston.info(`scraper::getSentences::Topic didnt match any P in wiki. `);
                         firstPIndex = 0;
                         break;
                     }
                     firstPIndex++;
                 }
-                console.log(`scraper::getSentences:: firstPIndex:: ${firstPIndex}`);
+                winston.info(`scraper::getSentences:: firstPIndex:: ${firstPIndex}`);
                 var firstP = removeRoundBrackets(filtered_p_s[firstPIndex].replace(/ *\[[^)]*\] */g, ""));
 
 
@@ -97,7 +98,7 @@ function getSentences(topic, n) {
                     result.push(sentences[i]);
                 }
 
-                console.log(`scraper::getSentences:: result is:: ${util.inspect(result)}`);
+                winston.info(`scraper::getSentences:: result is:: ${util.inspect(result)}`);
                 resolve(result);
             })
     });
@@ -144,7 +145,10 @@ function scrapeImages(topic, n, path, fileNames) {
             uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n*2}`,
             method: "GET",
             headers: {
-                'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491'
+                'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491',
+                'imageType': 'Photo',
+                'license': 'Public',
+                'size': 'Large'
             },
 
         }, function (err, res, body) {
@@ -171,7 +175,7 @@ function scrapeImages(topic, n, path, fileNames) {
 
                 var fn = function (j, cb) {
                     if (result.length < n && j < body.length-1) {
-                        console.log(`inside if`);
+                        winston.info(`inside if`);
                         request.head(body[j].contentUrl, function (err, res, bodyy) {
                             if (res.headers['content-type'].startsWith('image/jpeg'))
                                 result.push(body[j]);
@@ -191,16 +195,16 @@ function downloadFile(uri, filename) {
 
     return new Promise((resolve, reject) => {
 //        request.head(uri, function (err, res, body) {
-//            console.log('----------------------------------------------');
-//            console.log('content-type:', res.headers['content-type']);
-//            console.log('content-length:', res.headers['content-length']);
-            console.log('scraper::downloadFile::uri:', uri);
-//            console.log('----------------------------------------------');
+//            winston.info('----------------------------------------------');
+//            winston.info('content-type:', res.headers['content-type']);
+//            winston.info('content-length:', res.headers['content-length']);
+            winston.info('scraper::downloadFile::uri:', uri);
+//            winston.info('----------------------------------------------');
 //
             request(uri)
                 .pipe(fs.createWriteStream(filename))
                 .on('close', () => {
-                    console.log(`scraper::downloadFile:: close pipe`);
+                    winston.info(`scraper::downloadFile:: close pipe`);
                     resolve(filename.substr(filename.lastIndexOf('/') + 1));
                 });
 //        });

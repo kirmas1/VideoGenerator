@@ -2,6 +2,8 @@ var synonym = require('./synonyms.js');
 var getSynonym = synonym.getSynonym;
 var db = require('./cars-db');
 var util = require('util');
+var winston = require('winston');
+
 
 /*
 car = {
@@ -17,17 +19,17 @@ function Car(model_make, model_name, model_year) {
     this.model_name = model_name;
     this.model_year = model_year;
     this.allTexts = [];
-    console.log('Car Ctor');
+    winston.info('Car Ctor');
     return new Promise((resolve, reject) => {
 
         db.getCarSpecs(this).then((specs) => {
 
             if (!specs) {
-                console.log('car::Car:: db.getCarSpecs !specs, rejecting: ' + util.inspect(specs));
+                winston.info('car::Car:: db.getCarSpecs !specs, rejecting: ' + util.inspect(specs));
                 reject('Cant get car specs');
             }
             this.specs = specs;
-            console.log('car::Car:: db.getCarSpecs success with vaule: ' + util.inspect(specs));
+            winston.info('car::Car:: db.getCarSpecs success with vaule: ' + util.inspect(specs));
             resolve(this);
         });
     })
@@ -45,7 +47,7 @@ Car.prototype.generateFirstSentence = function () {
 
     if (this.isStartingWithVowel(this.specs.model_drive)) a_an_model_drive = 'An';
 
-    console.log(`car.js::generateFirstSentence:: this.specs.model_drive is: ${this.specs.model_drive}`);
+    winston.info(`car.js::generateFirstSentence:: this.specs.model_drive is: ${this.specs.model_drive}`);
 
     this.allTexts.push({
         text: `${a_an_model_drive} ${this.specs.model_drive},
