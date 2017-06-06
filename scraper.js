@@ -147,7 +147,7 @@ function scrapeImages(topic, n, path, fileNames) {
             headers: {
                 'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491',
                 'imageType': 'Photo',
-                'license': 'Public',
+                'license': 'Any',
                 'size': 'Large'
             },
 
