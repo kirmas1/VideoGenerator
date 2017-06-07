@@ -94,7 +94,7 @@ app.get('/autogen', function (req, res) {
     }
     
     function updateClient(message) {
-        winston.info('server::autogen::updateClient:: message = ' + message);
+        winston.info('server::autogen::updateClient:: message = ' + util.inspect(message));
         io.sockets.emit('update', message);
     }
     

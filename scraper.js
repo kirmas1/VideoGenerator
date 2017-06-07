@@ -107,20 +107,20 @@ function getSentences(topic, n) {
                     if (filtered_p_s[firstPIndex].toLowerCase().indexOf(topic.toLowerCase()) >= 0)
                         break;
                     if (filtered_p_s.length - 1 === firstPIndex) {
-                        winston.info(`scraper::getSentences::Topic didnt match any P in wiki. `);
+                        winston.info(`scraper::getSentences::Topic didnt match any P in wiki. Going for first P`);
                         firstPIndex = 0;
                         break;
                     }
                     firstPIndex++;
                 }
                 winston.info(`scraper::getSentences:: firstPIndex:: ${firstPIndex}`);
-                winston.info(`scraper::getSentences:: filtered_p_s[firstPIndex]: ${filtered_p_s[firstPIndex]}`);
+//                winston.info(`scraper::getSentences:: filtered_p_s[firstPIndex]: ${filtered_p_s[firstPIndex]}`);
 
                 //var firstP = removeRoundBrackets(filtered_p_s[firstPIndex].replace(/ *\[[^)]*\] */g, ""));
-                
+
                 var firstP = removeRoundBrackets(removeSquareBrackets(filtered_p_s[firstPIndex]));
 
-                winston.info(`scraper::getSentences:: firstP: ${firstP}`);
+                //winston.info(`scraper::getSentences:: firstP: ${firstP}`);
 
                 var sentences = summarizer.splitToSentences(firstP).filter(function (word) {
                     return word.length > 10;
@@ -184,7 +184,7 @@ function scrapeImages(topic, n, path, fileNames) {
     return new Promise((resolve, reject) => {
 
         request({
-            uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n*2}`,
+            uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n*5}`,
             method: "GET",
             headers: {
                 'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491',
@@ -201,23 +201,31 @@ function scrapeImages(topic, n, path, fileNames) {
                 // Parse body, if body
                 body = typeof body === 'string' ? JSON.parse(body) : body;
             }
-
-            sanitize(body.value, n).then((sanitizedBodyValue) => {
+            winston.info(`scraper::scrapeImages:: body.value.length is: ${body.value.length}`);
+            
+            sanitize(body.value, n)
+                .then((sanitizedBodyValue) => {
+                
+                winston.info(`scraper::scrapeImages:: sanitizedBodyValue.length is:  ${sanitizedBodyValue.length}`);
+                
                 var downloadImagesPromise = sanitizedBodyValue.map((ele, index) => {
                     return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
                 })
 
-                Promise.all(downloadImagesPromise).then(res => resolve(res));
+                Promise.all(downloadImagesPromise)
+                    .then(res => resolve(res));
             });
         })
 
         function sanitize(body, n) {
+            
             return new Promise((resolve, reject) => {
+                
                 var result = [];
 
                 var fn = function (j, cb) {
                     if (result.length < n && j < body.length - 1) {
-                        winston.info(`inside if`);
+                        //                        winston.info(`inside if`);
                         request.head(body[j].contentUrl, function (err, res, bodyy) {
                             res = res || '';
                             if (res.headers['content-type'].startsWith('image/jpeg'))
@@ -227,6 +235,7 @@ function scrapeImages(topic, n, path, fileNames) {
                     } else cb(result);
 
                 }
+                
                 fn(0, function (r) {
                     resolve(r)
                 });
