@@ -127,19 +127,19 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
     // list of `state` value/display objects
     $scope.phrases = loadAll();
 
-    $scope.generateAutomticVideo = function () {
+    $scope.generateAutomaticVideo = function () {
 
         console.log(`automaticCtrl::genrateAutomaticVideo::search  = ${$scope.searchText}`);
 
-        if ($scope.searchText) videoService.generateAutomticVideo($scope.searchText);
+        if ($scope.searchText) videoService.generateAutomaticVideo($scope.searchText);
         $scope.searchText = '';
 
     }
 
     $scope.querySearch = function (query) {
         var results = query ? $scope.phrases.filter(createFilterFor(query)) : $scope.phrases;
-console.log('-----------results are:' + results);
-        return results.slice( 0 , 3 );
+        //console.log('-----------results are:' + results);
+        return results.slice(0, 3);
     }
 
     $scope.searchTextChange = function (text) {
@@ -147,7 +147,7 @@ console.log('-----------results are:' + results);
     }
 
     function loadAll() {
-        var allOptionalPhrases = 
+        var allOptionalPhrases =
             'BMW, Audi, Porsche, Lamborghini, Dodge, McLaren, Mercedes-Benz, Bentley, Nissan, Chevrolet, BMW 7 Series, BMW M4, Audi TTS, Audi A8,   Porsche 918 Spyder, Lamborghini Aventador, Dodge Challenger, Dodge Charger, McLaren 650S Coupe, McLaren 650S Spider, Mercedes-Benz S-Class, Mercedes-Benz SL-Class, Bentley Flying Spur, Lamborghini Huracan, Nissan GT-R, Chevrolet Camaro, Porsche Panamera, BMW 7 Series 2016, BMW 7 Series 2017, BMW M4 2017, Audi TTS 2017, Audi A8 2017, Porsche 918 Spyder 2016, Lamborghini Aventador 2017, Dodge Challenger 2016, Dodge Charger 2016, McLaren 650S Coupe 2016, McLaren 650S Spider 2017, Mercedes-Benz S-Class 2016, Mercedes-Benz SL-Class 2016, Bentley Flying Spur 2017, Lamborghini Huracan 2017,Nissan	GT-R 2016, Chevrolet Camaro 2017, Porsche Panamera 2017, Porsche Panamera 2016';
 
 
@@ -158,20 +158,20 @@ console.log('-----------results are:' + results);
             };
         });
 
-//        var allStates = 'Alabama, Alaska, Arizona, Arkansas, California, Colorado, Connecticut, Delaware,\
-//              Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana,\
-//              Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana,\
-//              Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina,\
-//              North Dakota, Ohio, Oklahoma, Oregon, Pennsylvania, Rhode Island, South Carolina,\
-//              South Dakota, Tennessee, Texas, Utah, Vermont, Virginia, Washington, West Virginia,\
-//              Wisconsin, Wyoming';
-//
-//        return allStates.split(/, +/g).map(function (state) {
-//            return {
-//                value: state.toLowerCase(),
-//                display: state
-//            };
-//        });
+        //        var allStates = 'Alabama, Alaska, Arizona, Arkansas, California, Colorado, Connecticut, Delaware,\
+        //              Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana,\
+        //              Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana,\
+        //              Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina,\
+        //              North Dakota, Ohio, Oklahoma, Oregon, Pennsylvania, Rhode Island, South Carolina,\
+        //              South Dakota, Tennessee, Texas, Utah, Vermont, Virginia, Washington, West Virginia,\
+        //              Wisconsin, Wyoming';
+        //
+        //        return allStates.split(/, +/g).map(function (state) {
+        //            return {
+        //                value: state.toLowerCase(),
+        //                display: state
+        //            };
+        //        });
     }
 
     /**
@@ -330,6 +330,21 @@ myApp.controller('transitionDetailsController', ['$scope', '$state', '$statePara
 
 myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
+    var socket = io.connect('http://localhost:3000');
+    
+    socket.on('connection approved', function (data) {
+        console.log('connection approved ' + data);
+    });
+
+    socket.on('update', function (data) {
+        //TODO 
+        historyList[historyList.length -1].inProgress = false;
+        historyList[historyList.length -1].state = data.state;
+        historyList[historyList.length -1].link = data.link
+        console.log('update, ' + data);
+    });
+
+
     var video = {
         files: [],
         name: 'Video Name here',
@@ -466,26 +481,29 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         return day + ' ' + monthNames[monthIndex] + ' ' + year;
     }
 
-    var generateAutomticVideo = function (phrase) {
-
+    var generateAutomaticVideo = function (phrase) {
+        console.log('videoService::generateAutomaticVideo:: phrase = ' + phrase);
         var m_index = historyList.push({
-            videoName: 'Automatic',
+            videoName: phrase,
             date: formatDate(new Date()),
             link: '',
-            inProgress: true
+            inProgress: true,
+            id: '',
+            state: -1 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
         }) - 1;
 
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
 
             if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                historyList[m_index].link = xhr.responseText;
-                historyList[m_index].inProgress = false;
+                historyList[m_index].id = xhr.responseText;
+                historyList[m_index].state = 0;
+                //historyList[m_index].link = xhr.responseText;
+                historyList[m_index].inProgress = true;
                 $rootScope.$digest();
                 console.log("xhr.responseText is: " + xhr.responseText);
             }
         };
-        console.log('myApp::generateAutomticVideo:: phrase = ' + phrase);
         xhr.open("GET", `/autogen/?q=${phrase}`);
         xhr.send({
             phrase: "123test"
@@ -546,7 +564,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         getSlide: getSlide,
         clearSlidesList: clearSlidesList,
         generateVideo: generateVideo,
-        generateAutomticVideo: generateAutomticVideo,
+        generateAutomaticVideo: generateAutomaticVideo,
         getVideoHistoryList: getVideoHistoryList,
         getLink: getLink
     };

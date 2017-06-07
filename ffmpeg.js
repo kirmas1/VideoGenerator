@@ -10,6 +10,17 @@ var winston = require('winston');
 
 var path_prefix = configuration.OS == 'linux' ? './' : '';
 
+var ffmpegLogger = new(winston.Logger)({
+    transports: [
+      new(winston.transports.File)({
+            filename: configuration.FFMPEG_LOG_PATH,
+            maxsize: 10000000,
+            json: false,
+            prettyPrint: true
+        })
+    ]
+});
+
 var me = function () {
 
     /*
@@ -52,7 +63,7 @@ var me = function () {
                             if (error) {
                                 throw error;
                             }
-                            winston.info(`ffmpeg::scalePromise::stderr: ${stderr}`);
+                            ffmpegLogger.info(`ffmpeg::scalePromise::stderr: ${stderr}`);
                             resolve(0);
                         });
                     });
@@ -71,7 +82,7 @@ var me = function () {
                                 winston.info(`ffmpeg::scalePromise2::err:: ${error}`);
                                 //throw error;
                             }
-                            winston.info(`ffmpeg::scalePromise2::stderr: ${stderr}`);
+                            ffmpegLogger.info(`ffmpeg::scalePromise2::stderr: ${stderr}`);
                             resolve(0);
                         });
                     });
@@ -88,7 +99,7 @@ var me = function () {
                         if (error) {
                             throw error;
                         }
-                        winston.info(`ffmpeg::cropPromise::stderr: ${stderr}`);
+                        ffmpegLogger.info(`ffmpeg::cropPromise::stderr: ${stderr}`);
                         resolve(0);
                     });
                 });
@@ -104,7 +115,7 @@ var me = function () {
                         if (error) {
                             throw error;
                         }
-                        winston.info(`ffmpeg::padPromise::stderr: ${stderr}`);
+                        ffmpegLogger.info(`ffmpeg::padPromise::stderr: ${stderr}`);
                         resolve(0);
                     });
                 });
@@ -567,7 +578,7 @@ var me = function () {
                         if (error) {
                             throw error;
                         }
-                        winston.info(`ffmpeg::concatAllPromise::stderr: ${stderr}`);
+                        ffmpegLogger.info(`ffmpeg::concatAllPromise::stderr: ${stderr}`);
                         innerVideoInfo.final_video_path = workshop + '/final_' + newFolderName + '.mp4';
                         resolve(0);
                     });
@@ -690,7 +701,7 @@ var me = function () {
                 if (error)
                     reject(error);
                 else
-                    winston.info(`ffmpeg::createZoomInEffectVideo::stderr: ${stderr}`);
+                    ffmpegLogger.info(`ffmpeg::createZoomInEffectVideo::stderr: ${stderr}`);
                 resolve(path_to_output);
             });
         })
@@ -724,10 +735,10 @@ var me = function () {
             execFile(ffmpeg, ['-framerate', 25, '-loop', 1, '-i', path_to_image, '-filter_complex', filter, '-map', '[v]', '-y', path_to_output], (error, stdout, stderr) => {
                 winston.info('ffmpeg::createSlidingCameraEffect: finished ' + ' createZoomInEffectVideo for: ' + path_to_image);
                 if (error) {
-                    winston.info('ffmpeg::createSlidingCameraEffect: rejecting, error ' + ' : ' + error);
+                    ffmpegLogger.error('ffmpeg::createSlidingCameraEffect: rejecting, error ' + ' : ' + error);
                     reject(error);
                 } else
-                    winston.info(`ffmpeg::createSlidingCameraEffect::stderr: ${stderr}`);
+                    ffmpegLogger.info(`ffmpeg::createSlidingCameraEffect::stderr: ${stderr}`);
                 resolve(path_to_output);
             });
         })
@@ -944,9 +955,9 @@ var me = function () {
                         var y = generateY(options.font_size, options.block_displays_t, options.block_h);
 
                         execFile(ffmpeg, ['-i', black_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:fontfile=${options.font_file}:textfile=${options.text_file}:y=${y}`, `${temp_workshop}/text_on_transparent.mp4`], (err, stdout, stderr) => {
-                            winston.info(`ffmpeg::rollingTextEffect::831 then: stdout: ${stdout}`);
+                            //winston.info(`ffmpeg::rollingTextEffect::831 then: stdout: ${stdout}`);
                             if (err) {
-                                winston.info(err);
+                                winston.error(err);
                                 rej(err);
                             }
                         }).on('exit', (code, signal) => {
@@ -969,8 +980,8 @@ var me = function () {
 
                         execFile(ffmpeg, ['-i', result, '-i', path_to_video, '-filter_complex', '[0]colorkey=color=#000000:similarity=0.1[keyed],[1][keyed]overlay=x=10:y=H-1.5*h', path_to_output], (err, stdout, stderr) => {
 
-                            winston.info(`ffmpeg::rollingTextEffect:: after execFile, stdout: ${stdout}`);
-                            winston.info(`ffmpeg::rollingTextEffect:: after execFile, stderr: ${stderr}`);
+                            ffmpegLogger.info(`ffmpeg::rollingTextEffect:: after execFile, stdout: ${stdout}`);
+                            ffmpegLogger.info(`ffmpeg::rollingTextEffect:: after execFile, stderr: ${stderr}`);
                             if (err) {
                                 winston.info(err);
                                 reject(err);
@@ -1080,7 +1091,7 @@ var me = function () {
                         var y = generateY2(options);
 
                         execFile(ffmpeg, ['-i', black_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:fontfile=${options.font_file}:textfile=${options.text_file}:y=${y}`, `${temp_workshop}/text_on_transparent.mp4`], (err, stdout, stderr) => {
-                            winston.info(`ffmpeg::rollingTextEffect2::then: stdout: ${stdout}`);
+                            ffmpegLogger.info(`ffmpeg::rollingTextEffect2::then: stdout: ${stdout}`);
                             if (err) {
                                 winston.info(err);
                                 rej(err);
@@ -1105,8 +1116,8 @@ var me = function () {
 
                         execFile(ffmpeg, ['-i', result, '-i', path_to_video, '-filter_complex', '[0]colorkey=color=#000000:similarity=0.1[keyed],[1][keyed]overlay=x=10:y=H-1.5*h', path_to_output], (err, stdout, stderr) => {
 
-                            winston.info(`ffmpeg::rollingTextEffect:: after execFile, stdout: ${stdout}`);
-                            winston.info(`ffmpeg::rollingTextEffect:: after execFile, stderr: ${stderr}`);
+                            ffmpegLogger.info(`ffmpeg::rollingTextEffect:: after execFile, stdout: ${stdout}`);
+                            ffmpegLogger.info(`ffmpeg::rollingTextEffect:: after execFile, stderr: ${stderr}`);
                             if (err) {
                                 winston.info(err);
                                 reject(err);
@@ -1207,7 +1218,7 @@ options: font_color, font_file, text_file
 
             execFile(ffmpeg, ['-i', path_to_video, '-vf', `drawtext=fontsize=${options.font_size}:fontcolor=${options.font_color}@1:box=${options.box}:boxcolor=${options.box_color}@${options.box_opacity}:boxborderw=10:fontfile=${options.font_file}:textfile=${options.text_file}:y=h-4*line_h:x=if(gt(800*(t-${options.start_time})-text_w\\,0)\\,0\\,800*(t-${options.start_time})-text_w)`, path_to_output], (err, stdout, stderr) => {
                 if (err) {
-                    winston.info(err);
+                    winston.error(err);
                 }
                 winston.info(stdout);
             }).on('exit', (code, signal) => {
@@ -1247,9 +1258,9 @@ options: font_color, font_file, text_file
             winston.info(arguments);
             execFile(ffmpeg, ['-i', video_path, '-vf', `drawtext=x=${options.x}:y=${options.y}:textfile=${options.text_file}:fontsize=${options.font_size}:fontfile=${options.font_file}:fontcolor_expr=${color}%{eif\\\\: clip(255*(1*between(t\\, ${options.fade_in_start_time} + ${options.fade_in_duration}\\, ${options.fade_out_end_time} - ${options.fade_out_duration}) + ((t - ${options.fade_in_start_time})/${options.fade_in_duration})*between(t\\, ${options.fade_in_start_time}\\, ${options.fade_in_start_time} + ${options.fade_in_duration}) + (-(t - ${options.fade_out_end_time})/${options.fade_out_duration})*between(t\\, ${options.fade_out_end_time} - ${options.fade_out_duration}\\, ${options.fade_out_end_time}) )\\, 0\\, 255) \\\\: x\\\\: 2 }`, output_path], (err, stdout, stderr) => {
                 if (err) {
-                    winston.info(err);
+                    winston.error(err);
                 }
-                winston.info(stdout);
+                ffmpegLogger.info(stdout);
             }).on('exit', (code, signal) => {
                 res(0);
             });
@@ -1264,9 +1275,9 @@ options: font_color, font_file, text_file
         return new Promise((res, rej) => {
             execFile(ffmpeg, ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(gte(25.6*N*SW+X,W),A,B)\'', output_video], (err, stdout, stdin) => {
                 if (err) {
-                    winston.info(err);
+                    winston.error(err);
                 }
-                winston.info(stdout);
+                ffmpegLogger.info(stdout);
             }).on('exit', (code, signal) => {
                 res(0);
             });
@@ -1280,9 +1291,9 @@ options: font_color, font_file, text_file
         return new Promise((res, rej) => {
             execFile(ffmpeg, ['-i', second_video, '-i', first_video, '-filter_complex', 'blend=\'all_expr=if(lte(X,25.6*N),A,B)\'', output_video], (err, stdout, stdin) => {
                 if (err) {
-                    winston.info(err);
+                    winston.error(err);
                 }
-                winston.info(stdout);
+                ffmpegLogger.info(stdout);
             }).on('exit', (code, signal) => {
                 res(0);
             });
@@ -1296,9 +1307,9 @@ options: font_color, font_file, text_file
         return new Promise((res, rej) => {
             execFile(ffmpeg, ['-i', first_video, '-i', second_video, '-filter_complex', 'blend=\'all_expr=if(gte(Y-14.4*N*SH,0),A,B)\'', output_video], (err, stdout, stdin) => {
                 if (err) {
-                    winston.info(err);
+                    winston.error(err);
                 }
-                winston.info(stdout);
+                ffmpegLogger.info(stdout);
             }).on('exit', (code, signal) => {
                 res(0);
             });
@@ -1325,13 +1336,12 @@ options: font_color, font_file, text_file
             winston.info(`ffmpeg::overlaySpeechToVideo:: options.videoFileDuration - options.audioFileDuration - options.startAt: ${options.videoFileDuration - options.audioFileDuration - options.startAt}\n`);
 
             execFile(ffmpeg, ['-i', video, '-i', audio, '-f', 'lavfi', '-t', options.startAt, '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-f', 'lavfi', '-t', options.videoFileDuration - options.audioFileDuration - options.startAt, '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-filter_complex', "[2:a][1:a][3:a]concat=n=3:v=0:a=1[a]", '-map', '0:v', '-map', '[a]', '-shortest', '-y', options.output], (err, stdout, stdin) => {
-                winston.info(`ffmpeg::overlaySpeechToVideo:: stdin: ${stdin}\n`);
-                winston.info(`ffmpeg::overlaySpeechToVideo:: stdout: ${stdout}\n`);
+                ffmpegLogger.info(`ffmpeg::overlaySpeechToVideo:: stdin: ${stdin}\n`);
+                ffmpegLogger.info(`ffmpeg::overlaySpeechToVideo:: stdout: ${stdout}\n`);
                 if (err) {
-                    winston.info(`ffmpeg::overlaySpeechToVideo:: err: ${err}\n`);
+                    winston.error(`ffmpeg::overlaySpeechToVideo:: err: ${err}\n`);
                     reject(err);
                 }
-                winston.info(stdout);
             }).on('exit', (code, signal) => {
                 winston.info(`ffmpeg::overlaySpeechToVideo::on exit:: code: ${code}\n`);
                 winston.info(`ffmpeg::overlaySpeechToVideo::on exit:: signal: ${signal}\n`);
@@ -1347,10 +1357,10 @@ options: font_color, font_file, text_file
             return new Promise((resolve, reject) => {
                 execFile(ffmpeg, ['-i', audio, '-i', video, '-filter_complex', '[0:a][1:a]amerge,pan=stereo|c0=0.2*c0+0.5*c2:c1=0.2*c1+0.5*c2[out]', '-map', '1:v', '-map', '[out]', '-c:v', 'copy', options.output], (err, stdout, stdin) => {
                     if (err) {
-                        winston.info('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
+                        winston.error('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
                         reject(err);
                     }
-                    winston.info(stdout);
+                    ffmpegLogger.info(stdout);
                 }).on('exit', (code, signal) => {
                     resolve(0);
                 });
@@ -1361,10 +1371,10 @@ options: font_color, font_file, text_file
             return new Promise((resolve, reject) => {
                 execFile(ffmpeg, ['-i', audio, '-i', video, '-c:v', 'copy', '-shortest', options.output], (err, stdout, stdin) => {
                     if (err) {
-                        winston.info('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
+                        winston.error('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
                         reject(err);
                     }
-                    winston.info(stdout);
+                    ffmpegLogger.info(stdout);
                 }).on('exit', (code, signal) => {
                     resolve(0);
                 });
@@ -1377,10 +1387,10 @@ options: font_color, font_file, text_file
         return new Promise((resolve, reject) => {
             execFile(ffmpeg, ['-f', 'lavfi', '-i', 'anullsrc=channel_layout=mono:sample_rate=22050', '-i', input, '-shortest', '-c:v', 'copy', output], (err, stdout, stdin) => {
                 if (err) {
-                    winston.info(err);
+                    winston.error(err);
                     reject(err);
                 }
-                winston.info(stdout);
+                ffmpegLogger.info(stdout);
             }).on('exit', (code, signal) => {
                 resolve(0);
             });

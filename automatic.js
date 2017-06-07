@@ -11,11 +11,11 @@ var nlp = require('./nlp');
 var scraper = require('./scraper');
 var winston = require('winston');
 
-function generate(phrase) {
+function generate(phrase , new_folder) {
 
     winston.info(`automatic::generate::start`);
 
-    var new_folder = createNewWorkShopFolder();
+    //var new_folder = createNewWorkShopFolder();
     var ffmpeg_details;
     var workshop = configuration.OS == 'linux' ? `./workshop/${new_folder}` : `workshop/${new_folder}`;
 
@@ -449,17 +449,17 @@ function createDataObjectFromCar(car, workshop) {
 }
 
 
-function createNewWorkShopFolder() {
-    var newFolderName = shortid.generate();
-
-    if (fs.existsSync('./workshop/' + newFolderName)) {
-        //create new newFolderName..
-    } else {
-        fs.mkdirSync('./workshop/' + newFolderName);
-    }
-
-    return newFolderName;
-}
+//function createNewWorkShopFolder() {
+//    var newFolderName = shortid.generate();
+//
+//    if (fs.existsSync('./workshop/' + newFolderName)) {
+//        //create new newFolderName..
+//    } else {
+//        fs.mkdirSync('./workshop/' + newFolderName);
+//    }
+//
+//    return newFolderName;
+//}
 
 function createCar(topic) {
     return new Car(topic.model_make, topic.model_name, topic.model_year);

@@ -1,5 +1,7 @@
 var express = require('express');
 var app = express();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
 var multer = require('multer');
 var path = require('path');
 var fs = require('fs');
@@ -12,7 +14,7 @@ var ffmpeg = require('./ffmpeg');
 var os = require("os");
 var url = require('url');
 var automatic = require('./automatic');
- var config = require('./configuration');
+var config = require('./configuration');
 var winston = require('winston');
 
 winston.add(winston.transports.File, {
@@ -20,21 +22,6 @@ winston.add(winston.transports.File, {
     maxsize: 10000000,
     json: false,
     prettyPrint: true
-});
-
-var logger = new (winston.Logger)({
-  transports: [
-    new (winston.transports.File)({
-      name: 'info-file',
-      filename: 'filelog-info.log',
-      level: 'info'
-    }),
-    new (winston.transports.File)({
-      name: 'error-file',
-      filename: 'filelog-error.log',
-      level: 'error'
-    })
-  ]
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -84,7 +71,7 @@ app.post('/test', function (req, res) {
     form.on('end', function () {
         //start process the files
         winston.info("end uploading");
-        ffmpeg.createCustom(data, newFolderName).then((result)=> {
+        ffmpeg.createCustom(data, newFolderName).then((result) => {
             res.end(result);
         });
 
@@ -92,21 +79,52 @@ app.post('/test', function (req, res) {
     });
 })
 
-app.get('/autogen', function(req, res){
+app.get('/autogen', function (req, res) {
 
-    var url_parts = url.parse(req.url,true);
+    function createNewWorkShopFolder() {
+        var newFolderName = shortid.generate();
+
+        if (fs.existsSync('./workshop/' + newFolderName)) {
+            //create new newFolderName..
+        } else {
+            fs.mkdirSync('./workshop/' + newFolderName);
+        }
+
+        return newFolderName;
+    }
+    
+    function updateClient(message) {
+        winston.info('server::autogen::updateClient:: message = ' + message);
+        io.sockets.emit('update', message);
+    }
+    
+    //'videos\\final_' + newFolderName + '.mp4'
+
+    var url_parts = url.parse(req.url, true);
     winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
-        
-    //res.end(url_parts.query.q);
+
+    var new_folder = createNewWorkShopFolder();
     
-    automatic.generate(url_parts.query.q)
-        .then((result) => {
-        
-        winston.info(`server.js::app.get(/autogen):: result is: ${util.inspect(result)}`);
-        
-        res.end(result);
-    });
-    
+    automatic.generate(url_parts.query.q, new_folder)
+        .then((res) => updateClient({link: res,
+                                    id: 123456,
+                                    state: 1}));
+
+    res.end(new_folder);
+
+    //    var url_parts = url.parse(req.url,true);
+    //    winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
+    //        
+    //    //res.end(url_parts.query.q);
+    //    
+    //    automatic.generate(url_parts.query.q)
+    //        .then((result) => {
+    //        
+    //        winston.info(`server.js::app.get(/autogen):: result is: ${util.inspect(result)}`);
+    //        
+    //        res.end(result);
+    //    });
+
 })
 
 app.get('*', function (req, res) {
@@ -114,6 +132,18 @@ app.get('*', function (req, res) {
 });
 
 
-var server = app.listen(3000, function () {
+var server = server.listen(3000, function () {
     winston.info('Server listening on port 3000');
+});
+
+io.on('connection', function (socket) {
+    
+    winston.info(`server::io.on:: connection`);
+    socket.emit('connection approved', 'ok');
+    
+    socket.on('req_query', function (data) {
+        
+        winston.info(`server::io.on my other event:: data = ${data}`);
+        req.end(data);
+    });
 });
