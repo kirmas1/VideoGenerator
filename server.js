@@ -17,12 +17,25 @@ var automatic = require('./automatic');
 var config = require('./configuration');
 var winston = require('winston');
 
+var performanceLogger = new(winston.Logger)({
+    transports: [
+      new(winston.transports.File)({
+            filename: config.PERFORMANCE_LOG_PATH,
+            maxsize: 1000,
+            json: false,
+            prettyPrint: true
+        })
+    ]
+});
+
 winston.add(winston.transports.File, {
     filename: config.LOG_PATH,
     maxsize: 10000000,
     json: false,
     prettyPrint: true
 });
+
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -81,6 +94,10 @@ app.post('/test', function (req, res) {
 
 app.get('/autogen', function (req, res) {
 
+    var timeLogger_autogen = performanceLogger.startTimer();
+    var timeLogger_test = performanceLogger.startTimer();
+    timeLogger_test.done("Test Done");
+
     function createNewWorkShopFolder() {
         var newFolderName = shortid.generate();
 
@@ -92,25 +109,29 @@ app.get('/autogen', function (req, res) {
 
         return newFolderName;
     }
-    
+
     function updateClient(message) {
         winston.info('server::autogen::updateClient:: message = ' + util.inspect(message));
         io.sockets.emit('update', message);
     }
-    
+
     //'videos\\final_' + newFolderName + '.mp4'
 
     var url_parts = url.parse(req.url, true);
     winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
 
     var new_folder = createNewWorkShopFolder();
-    
+
     automatic.generate(url_parts.query.q, new_folder)
-        .then((res) => updateClient({link: res,
-                                    id: 123456,
-                                    state: 1}));
+        .then((res) => updateClient({
+            link: res,
+            id: 123456,
+            state: 1
+        }));
 
     res.end(new_folder);
+
+    timeLogger_autogen.done("server::autogen:: ack");
 
     //    var url_parts = url.parse(req.url,true);
     //    winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
@@ -137,12 +158,12 @@ var server = server.listen(3000, function () {
 });
 
 io.on('connection', function (socket) {
-    
+
     winston.info(`server::io.on:: connection`);
     socket.emit('connection approved', 'ok');
-    
+
     socket.on('req_query', function (data) {
-        
+
         winston.info(`server::io.on my other event:: data = ${data}`);
         req.end(data);
     });

@@ -11,8 +11,21 @@ var nlp = require('./nlp');
 var scraper = require('./scraper');
 var winston = require('winston');
 
+var performanceLogger = new(winston.Logger)({
+    transports: [
+      new(winston.transports.File)({
+            filename: configuration.PERFORMANCE_LOG_PATH,
+            maxsize: 1000,
+            json: false,
+            prettyPrint: true
+        })
+    ]
+});
+
 function generate(phrase , new_folder) {
 
+    var timeLogger_generate = performanceLogger.startTimer();
+    
     winston.info(`automatic::generate::start`);
 
     //var new_folder = createNewWorkShopFolder();
@@ -117,6 +130,7 @@ function generate(phrase , new_folder) {
             })
             .then(res => {
                 resolve(res);
+            timeLogger_generate.done("automatic.generate");
             })
     })
 }
