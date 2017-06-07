@@ -40,7 +40,7 @@ function getSentences(topic, n) {
 
                             if (str.charAt(i) === ')') {
                                 if (counter === 1)
-                                    return str.substr(0, firstIndex - 1) + str.substr(i + 1);
+                                    return str.substr(0, firstIndex) + str.substr(i + 1);
                                 else if (counter > 1) {
                                     counter--;
                                 }
@@ -52,6 +52,43 @@ function getSentences(topic, n) {
 
                     while (str.indexOf('(') !== -1)
                         str = cutTheBullshit(str);
+                    return str;
+
+                };
+
+                function removeSquareBrackets(str) {
+
+                    function cutTheBullshit(str) {
+
+                        var i = 0;
+                        var counter = 0;
+                        var firstIndex = -1;
+
+                        while (i < str.length) {
+
+                            if (str.charAt(i) === '[') {
+
+                                counter++;
+                                if (counter === 1) firstIndex = i;
+                            }
+
+                            if (str.charAt(i) === ']') {
+                                if (counter === 1)
+                                    return str.substr(0, firstIndex) + str.substr(i + 1);
+                                else if (counter > 1) {
+                                    counter--;
+                                }
+                            }
+
+                            i++;
+                        }
+                    }
+
+                    while (str.indexOf('[') !== -1) {
+                        console.log('str:' + '\n' + str);
+                        str = cutTheBullshit(str);
+                    }
+
                     return str;
 
                 };
@@ -77,8 +114,13 @@ function getSentences(topic, n) {
                     firstPIndex++;
                 }
                 winston.info(`scraper::getSentences:: firstPIndex:: ${firstPIndex}`);
-                var firstP = removeRoundBrackets(filtered_p_s[firstPIndex].replace(/ *\[[^)]*\] */g, ""));
+                winston.info(`scraper::getSentences:: filtered_p_s[firstPIndex]: ${filtered_p_s[firstPIndex]}`);
 
+                //var firstP = removeRoundBrackets(filtered_p_s[firstPIndex].replace(/ *\[[^)]*\] */g, ""));
+                
+                var firstP = removeRoundBrackets(removeSquareBrackets(filtered_p_s[firstPIndex]));
+
+                winston.info(`scraper::getSentences:: firstP: ${firstP}`);
 
                 var sentences = summarizer.splitToSentences(firstP).filter(function (word) {
                     return word.length > 10;
@@ -174,7 +216,7 @@ function scrapeImages(topic, n, path, fileNames) {
                 var result = [];
 
                 var fn = function (j, cb) {
-                    if (result.length < n && j < body.length-1) {
+                    if (result.length < n && j < body.length - 1) {
                         winston.info(`inside if`);
                         request.head(body[j].contentUrl, function (err, res, bodyy) {
                             res = res || '';
@@ -183,10 +225,11 @@ function scrapeImages(topic, n, path, fileNames) {
                             fn(++j, cb);
                         });
                     } else cb(result);
-                    
+
                 }
-                fn(0, function(r){
-                    resolve(r)});
+                fn(0, function (r) {
+                    resolve(r)
+                });
             });
         }
     });
@@ -195,20 +238,20 @@ function scrapeImages(topic, n, path, fileNames) {
 function downloadFile(uri, filename) {
 
     return new Promise((resolve, reject) => {
-//        request.head(uri, function (err, res, body) {
-//            winston.info('----------------------------------------------');
-//            winston.info('content-type:', res.headers['content-type']);
-//            winston.info('content-length:', res.headers['content-length']);
-            winston.info('scraper::downloadFile::uri:', uri);
-//            winston.info('----------------------------------------------');
-//
-            request(uri)
-                .pipe(fs.createWriteStream(filename))
-                .on('close', () => {
-                    winston.info(`scraper::downloadFile:: close pipe`);
-                    resolve(filename.substr(filename.lastIndexOf('/') + 1));
-                });
-//        });
+        //        request.head(uri, function (err, res, body) {
+        //            winston.info('----------------------------------------------');
+        //            winston.info('content-type:', res.headers['content-type']);
+        //            winston.info('content-length:', res.headers['content-length']);
+        winston.info('scraper::downloadFile::uri:', uri);
+        //            winston.info('----------------------------------------------');
+        //
+        request(uri)
+            .pipe(fs.createWriteStream(filename))
+            .on('close', () => {
+                winston.info(`scraper::downloadFile:: close pipe`);
+                resolve(filename.substr(filename.lastIndexOf('/') + 1));
+            });
+        //        });
     });
 };
 

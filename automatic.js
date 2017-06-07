@@ -73,9 +73,7 @@ function generate(phrase , new_folder) {
                                 reject(err);
                             });
                     });
-                } else if (topic.id === 1) {
-                    //car.model_make && car.model_name
-                } else if (topic.id === 2 || topic.id === 3) {
+                } else if (topic.id === 1 || topic.id === 2 || topic.id === 3) {
                     //car.model_make
                     return new Promise((resolve, reject) => {
 
