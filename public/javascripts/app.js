@@ -91,7 +91,13 @@ myApp.controller('mainNavCtrl', ['$scope', '$state', function ($scope, $state) {
 
 myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoService', function ($scope, $state, $mdDialog, videoService) {
 
-    $scope.videoHistoryList = videoService.getVideoHistoryList();
+    //$scope.videoHistoryList = videoService.getVideoHistoryList();
+
+    videoService.getVideoHistoryList()
+        .then((res) => {
+            $scope.videoHistoryList = res;
+            console.log('videosHistoryCtrl:: res is ' + res);
+        });
 
     $scope.playVideo = function (ev, index) {
         console.log('ev: ' + ev);
@@ -143,7 +149,7 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
     }
 
     $scope.searchTextChange = function (text) {
-        console.log('Text changed to ' + text);
+        //console.log('Text changed to ' + text);
     }
 
     function loadAll() {
@@ -328,20 +334,25 @@ myApp.controller('transitionDetailsController', ['$scope', '$state', '$statePara
     $scope.id = $stateParams.id / 2 + 1 / 2;
 }])
 
+
+
 myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
     var socket = io.connect('http://localhost:3000');
-    
+
     socket.on('connection approved', function (data) {
         console.log('connection approved ' + data);
     });
 
     socket.on('update', function (data) {
-        //TODO 
-        historyList[historyList.length -1].inProgress = false;
-        historyList[historyList.length -1].state = data.state;
-        historyList[historyList.length -1].link = data.link
-        console.log('update, ' + data);
+//        var x = historyList.findIndex(function(ele){
+//            return ele.link === data.link;
+//        })
+        historyList[data.id].state = data.state;
+        historyList[data.id].inProgress = data.inProgress;
+        historyList[data.id].link = data.link;
+//        console.log('videoService::on update:: x: , ' + x);
+//        console.log('videoService::on update:: data: , ' + data);
     });
 
 
@@ -358,7 +369,22 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
     var historyList = [];
 
     var getVideoHistoryList = function () {
-        return historyList;
+
+        return new Promise((resolve, reject) => {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+
+                    historyList = JSON.parse(xhr.responseText);
+                    $rootScope.$digest();
+                    resolve(historyList);
+                }
+                
+            };
+            xhr.open("GET", `/res/videos/all`);
+            xhr.send();
+        });
     }
 
     var getLink = function (index) {
@@ -483,31 +509,35 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
     var generateAutomaticVideo = function (phrase) {
         console.log('videoService::generateAutomaticVideo:: phrase = ' + phrase);
-        var m_index = historyList.push({
-            videoName: phrase,
-            date: formatDate(new Date()),
-            link: '',
-            inProgress: true,
-            id: '',
-            state: -1 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
-        }) - 1;
+        
+
+
+//        var m_index = historyList.push({
+//            videoName: phrase,
+//            date: formatDate(new Date()),
+//            link: '',
+//            inProgress: true,
+//            id: '',
+//            state: -1 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
+//        }) - 1;
 
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
 
             if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                historyList[m_index].id = xhr.responseText;
-                historyList[m_index].state = 0;
+                
+                var jsonResponse = JSON.parse(xhr.responseText);
+                
+                historyList[jsonResponse.id] = jsonResponse;
+
                 //historyList[m_index].link = xhr.responseText;
-                historyList[m_index].inProgress = true;
+                //historyList[m_index].inProgress = true;
                 $rootScope.$digest();
-                console.log("xhr.responseText is: " + xhr.responseText);
+                console.log("videoService::generateAutomaticVideo::xhr.responseText is: " + xhr.responseText);
             }
         };
         xhr.open("GET", `/autogen/?q=${phrase}`);
-        xhr.send({
-            phrase: "123test"
-        });
+        xhr.send();
     }
 
     var generateVideo = function () {
@@ -568,7 +598,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         getVideoHistoryList: getVideoHistoryList,
         getLink: getLink
     };
-}])
+            }])
 
 
 myApp.directive('customOnChange', function () {

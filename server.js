@@ -16,6 +16,7 @@ var url = require('url');
 var automatic = require('./automatic');
 var config = require('./configuration');
 var winston = require('winston');
+var db = require('./db');
 
 var performanceLogger = new(winston.Logger)({
     transports: [
@@ -92,11 +93,16 @@ app.post('/test', function (req, res) {
     });
 })
 
-app.get('/autogen', function (req, res) {
+app.get('/res/videos/all', function (req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.end( JSON.stringify(db.res.getAll()) );
+})
 
+app.get('/autogen', function (req, res) {
+    
     var timeLogger_autogen = performanceLogger.startTimer();
-    var timeLogger_test = performanceLogger.startTimer();
-    timeLogger_test.done("Test Done");
+    
+    res.setHeader('Content-Type', 'application/json');
 
     function createNewWorkShopFolder() {
         var newFolderName = shortid.generate();
@@ -110,9 +116,25 @@ app.get('/autogen', function (req, res) {
         return newFolderName;
     }
 
-    function updateClient(message) {
-        winston.info('server::autogen::updateClient:: message = ' + util.inspect(message));
+    function updateClientandDB(message) {
+        winston.info('server::autogen::updateClientandDB:: message = ' + util.inspect(message));
+        db.res.update(message);
         io.sockets.emit('update', message);
+    }
+    
+    var formatDate = function (date) {
+        var monthNames = [
+    "January", "February", "March",
+    "April", "May", "June", "July",
+    "August", "September", "October",
+    "November", "December"
+        ];
+
+        var day = date.getDate();
+        var monthIndex = date.getMonth();
+        var year = date.getFullYear();
+
+        return day + ' ' + monthNames[monthIndex] + ' ' + year;
     }
 
     //'videos\\final_' + newFolderName + '.mp4'
@@ -121,30 +143,30 @@ app.get('/autogen', function (req, res) {
     winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
 
     var new_folder = createNewWorkShopFolder();
-
+    
+    var newVideo = db.res.save({
+        timeCreated: formatDate(new Date()),
+        date: formatDate(new Date()),
+        videoName: url_parts.query.q,
+        link: new_folder,
+        details: {},
+        inProgress: true,
+        state: 0 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
+    });
+    
     automatic.generate(url_parts.query.q, new_folder)
-        .then((res) => updateClient({
-            link: res,
-            id: 123456,
-            state: 1
-        }));
+        .then((res) => updateClientandDB({
+                link: res,
+                id: newVideo.id,
+                state: 1,
+                inProgress: false
+                })
+             );
 
-    res.end(new_folder);
+    res.end( JSON.stringify(newVideo) );
+
 
     timeLogger_autogen.done("server::autogen:: ack");
-
-    //    var url_parts = url.parse(req.url,true);
-    //    winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
-    //        
-    //    //res.end(url_parts.query.q);
-    //    
-    //    automatic.generate(url_parts.query.q)
-    //        .then((result) => {
-    //        
-    //        winston.info(`server.js::app.get(/autogen):: result is: ${util.inspect(result)}`);
-    //        
-    //        res.end(result);
-    //    });
 
 })
 

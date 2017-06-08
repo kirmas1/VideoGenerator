@@ -21,6 +21,17 @@ var ffmpegLogger = new(winston.Logger)({
     ]
 });
 
+var performanceLogger = new(winston.Logger)({
+    transports: [
+      new(winston.transports.File)({
+            filename: configuration.PERFORMANCE_LOG_PATH,
+            maxsize: 1000,
+            json: false,
+            prettyPrint: true
+        })
+    ]
+});
+
 var me = function () {
 
     /*
@@ -32,6 +43,7 @@ var me = function () {
 */
     var createCustom = function (details, newFolderName) {
 
+        var timeLogger_createCustom = performanceLogger.startTimer();
         winston.info('Let\'s start create cusstom!');
 
         var workshop = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
@@ -675,6 +687,7 @@ var me = function () {
                     moveFinalFileToPublic();
                 })
                 .then(() => {
+                timeLogger_createCustom.done("ffmpeg::createCustom");
                     winston.info('File moved to public');
                     resolve('videos\\final_' + newFolderName + '.mp4');
                 })

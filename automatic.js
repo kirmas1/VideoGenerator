@@ -94,7 +94,7 @@ function generate(phrase , new_folder) {
 
                         winston.info(`automatic::generate:: topic.id ${topic.id}`);
                         scraper
-                            .getSentences(phrase, 5)
+                            .getSentences(phrase, configuration.VIDEO.SENTENCE_COUNT)
                             .then((result) => {
 
                                 sentences = result;
@@ -125,7 +125,7 @@ function generate(phrase , new_folder) {
                 winston.info(`automatic::generate:: prepare(topic) return value: ${res}`);
                 winston.info(`automatic::generate:: new_folder value: ${new_folder}`);
                 winston.info(`automatic::generate:: ffmpeg_details value: ${util.inspect(ffmpeg_details)}`);
-
+            
                 return ffmpeg.createCustom(ffmpeg_details, new_folder);
             })
             .then(res => {

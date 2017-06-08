@@ -149,36 +149,6 @@ function getSentences(topic, n) {
 /*
 Download images from the internet using BingAPI to get the resources. 
 */
-//function scrapeImages(topic, n, path, fileNames) {
-//    
-//    return new Promise((resolve, reject) => {
-//
-//        request({
-//            uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n}`,
-//            method: "GET",
-//            headers: {
-//                'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491'
-//            },
-//
-//        }, function (err, res, body) {
-//
-//            if (res && res.statusCode !== 200) {
-//                err = new Error(body);
-//            } else {
-//                // Parse body, if body
-//                body = typeof body === 'string' ? JSON.parse(body) : body;
-//            }
-//
-//            var downloadImagesPromise = body.value.map((ele, index) => {
-//                return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
-//            })
-//
-//            Promise.all(downloadImagesPromise).then(res=>resolve(res));
-//        })
-//    });
-//
-//}
-
 function scrapeImages(topic, n, path, fileNames) {
 
     return new Promise((resolve, reject) => {
