@@ -4,6 +4,7 @@ const request = require('request');
 const fs = require('fs');
 const util = require('util');
 var winston = require('winston');
+var config = require('./configuration');
 
 /*
 summerize the first p of wikipedia and returns array of the n most important sentences
@@ -16,9 +17,13 @@ function getSentences(topic, n) {
         winston.info(`scraper::getSentences:: topic is: ${topic} \n n is ${n}`);
 
         osmosis
-            .get(`https://en.wikipedia.org/wiki/${topic}`)
+        //            .get(`https://en.wikipedia.org/wiki/${topic}`)
+            .get('https://en.wikipedia.org/wiki/Main_Page')
+            .submit(".//*[@id='searchButton']", {
+                search: topic
+            })
             .set({
-                'all_p': ['p']
+                'first_ps': [`//p[position() < ${config.WIKI_P_COUNT + 1}]`] //index starting from 1 (Xpath..)
             })
             .data(function (data) {
 
@@ -93,10 +98,10 @@ function getSentences(topic, n) {
 
                 };
 
-                if (data.all_p.length === 0)
+                if (data.first_ps.length === 0)
                     winston.info(`scraper::getSentences:: Didnt found anything on wiki`);
 
-                var filtered_p_s = data.all_p.filter(function (word) {
+                var filtered_p_s = data.first_ps.filter(function (word) {
                     return word.length > 0;
                 })
 
@@ -114,7 +119,7 @@ function getSentences(topic, n) {
                     firstPIndex++;
                 }
                 winston.info(`scraper::getSentences:: firstPIndex:: ${firstPIndex}`);
-//                winston.info(`scraper::getSentences:: filtered_p_s[firstPIndex]: ${filtered_p_s[firstPIndex]}`);
+                //                winston.info(`scraper::getSentences:: filtered_p_s[firstPIndex]: ${filtered_p_s[firstPIndex]}`);
 
                 //var firstP = removeRoundBrackets(filtered_p_s[firstPIndex].replace(/ *\[[^)]*\] */g, ""));
 
@@ -172,25 +177,25 @@ function scrapeImages(topic, n, path, fileNames) {
                 body = typeof body === 'string' ? JSON.parse(body) : body;
             }
             winston.info(`scraper::scrapeImages:: body.value.length is: ${body.value.length}`);
-            
+
             sanitize(body.value, n)
                 .then((sanitizedBodyValue) => {
-                
-                winston.info(`scraper::scrapeImages:: sanitizedBodyValue.length is:  ${sanitizedBodyValue.length}`);
-                
-                var downloadImagesPromise = sanitizedBodyValue.map((ele, index) => {
-                    return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
-                })
 
-                Promise.all(downloadImagesPromise)
-                    .then(res => resolve(res));
-            });
+                    winston.info(`scraper::scrapeImages:: sanitizedBodyValue.length is:  ${sanitizedBodyValue.length}`);
+
+                    var downloadImagesPromise = sanitizedBodyValue.map((ele, index) => {
+                        return downloadFile(ele.contentUrl, `${path}/${fileNames[index]}.${ele.encodingFormat}`);
+                    })
+
+                    Promise.all(downloadImagesPromise)
+                        .then(res => resolve(res));
+                });
         })
 
         function sanitize(body, n) {
-            
+
             return new Promise((resolve, reject) => {
-                
+
                 var result = [];
 
                 var fn = function (j, cb) {
@@ -205,7 +210,7 @@ function scrapeImages(topic, n, path, fileNames) {
                     } else cb(result);
 
                 }
-                
+
                 fn(0, function (r) {
                     resolve(r)
                 });
