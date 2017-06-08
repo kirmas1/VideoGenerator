@@ -96,6 +96,7 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
     videoService.getVideoHistoryList()
         .then((res) => {
             $scope.videoHistoryList = res;
+            $scope.$digest();
             console.log('videosHistoryCtrl:: res is ' + res);
         });
 
@@ -339,6 +340,7 @@ myApp.controller('transitionDetailsController', ['$scope', '$state', '$statePara
 myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
     var socket = io.connect('http://localhost:3000');
+    //var socket = io.connect('http://ec2-34-208-148-164.us-west-2.compute.amazonaws.com:3000');
 
     socket.on('connection approved', function (data) {
         console.log('connection approved ' + data);
