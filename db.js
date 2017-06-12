@@ -1,5 +1,9 @@
 var winston = require('winston');
 var util = require('util');
+var videoTable = require('./videoTable');
+var AWS = require('aws-sdk');
+AWS.config.loadFromPath('./aws.config.json');
+var dynamodb = new AWS.DynamoDB();
 
 var formatDate = function (date) {
     var monthNames = [
@@ -16,47 +20,101 @@ var formatDate = function (date) {
     return day + ' ' + monthNames[monthIndex] + ' ' + year;
 }
 
-var videoList = [{
-    timeCreated: formatDate(new Date()),
-    date: formatDate(new Date()),
-    videoName: 'fakeName0',
-    link: 'fakeFolder0',
-    id: 0,
-    details: {},
-    inProgress: false,
-    state: 1 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
-    }];
-
 module.exports = {
     res: {
-        getAll: function () {
-            console.log('db::getAll')
-            return videoList;
-        },
-        save: function (item) {
-            
-            winston.info(`db::save:: item is: ${item}`);
-            item.id = videoList.length;
-            videoList.push(item);
-            
-            winston.info(`db::save:: videoListAfterPushigItem is: ${util.inspect(videoList)}`);
-            
-            return item;
-        },
-        update: function (item ) {
-//            var index = videoList.findIndex(function(ele){
-//                return ele.link === item.link;
-//            });
-            
-            winston.info(`db::update:: item.id is: ${item.id}`);
-            
-            videoList[item.id].state = item.state;
-            videoList[item.id].link = item.link;
-            videoList[item.id].inProgress = item.inProgress;
-            
-            return 0;
-            
-        }
+        video: {
+            newByPhrase: function (input_phrase) {
 
+                return new Promise((resolve, reject) => {
+                    winston.log(`db::newByPhrase:: phrase = ${input_phrase}`);
+
+                    videoTable.putItem({
+                        clientName: 'Sagi',
+                        videoName: input_phrase,
+                        metadata: {
+                            origin: 1,
+                            phrase: input_phrase,
+                            url: null,
+                            timeCreated: (new Date()).toString(), //The request
+                            ffmpegProcessDuration: null,
+                            link: null,
+                            state: -1,
+                            inProgress: false
+                        },
+                        info: {
+                            tempFolder: null,
+                            audio: {
+                                enable: true,
+                                file_path: 'assets/bg_music_0.mp3'
+                            },
+                            slidesInfo: []
+                        }
+                    }, {
+                        ReturnValues: "ALL_OLD"
+                    }, function (err, data) {
+                        if (err) {
+                            winston.info(`db.res.video.putItem err = ${err}, err.stack = ${err.stack}`);
+                            reject(err);
+                        } else {
+                            resolve(data.Items)
+                        };
+                    });
+                });
+            },
+            getAll: function () {
+                return new Promise((resolve, reject) => {
+
+                    console.log('db::getAll');
+
+                    var params = {
+                        ExpressionAttributeNames: {
+                            "#clientName": "clientName"
+                        },
+                        ExpressionAttributeValues: {
+                            ":a": {
+                                S: "Sagi"
+                            }
+                        },
+                        FilterExpression: "#clientName = :a",
+                        TableName: "Videos"
+                    };
+
+                    dynamodb.scan(params, function (err, data) {
+                        if (err) {
+                            winston.info(`db.res.video.getAll err = ${err}, err.stack = ${err.stack}`);
+                            reject(err);
+                        } else {
+                            resolve(data.Items)
+                        };
+                    });
+                })
+            },
+            update: function (item) {
+                winston.info(`db::update::`);
+
+                //videoList[item.id] = item;
+
+                videoTable.updateItem({
+                    TableName: 'Videos',
+                    Key: {
+                        clientName: item.clientName,
+                        videoName: item.videoName
+                    },
+                    UpdateExpression: 'SET #I = :i, #M = :m',
+                    ExpressionAttributeNames: {
+                        '#I': 'info',
+                        '#M': 'metadata'
+                    },
+                    ExpressionAttributeValues: {
+                        ':i': item.info,
+                        ':m': item.metadata
+                    },
+                    ReturnValues: "ALL_NEW"
+                });
+
+                return 0;
+
+            }
+        }
     }
 }

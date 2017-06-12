@@ -10,6 +10,7 @@ var mp3Duration = require('mp3-duration');
 var nlp = require('./nlp');
 var scraper = require('./scraper');
 var winston = require('winston');
+var db = require('./db');
 
 var performanceLogger = new(winston.Logger)({
     transports: [
@@ -22,30 +23,25 @@ var performanceLogger = new(winston.Logger)({
     ]
 });
 
-function generate(phrase , new_folder) {
+//function generate(phrase , new_folder) {
+
+function generate(video) {
 
     var timeLogger_generate = performanceLogger.startTimer();
-    
+
     winston.info(`automatic::generate::start`);
 
-    //var new_folder = createNewWorkShopFolder();
-    var ffmpeg_details;
-    var workshop = configuration.OS == 'linux' ? `./workshop/${new_folder}` : `workshop/${new_folder}`;
-
+    video.info.tempFolder = createNewWorkShopFolder();
+    video.metadata.state = 0;
+    video.metadata.inProgress = true;
+    db.res.video.update(video);
 
     return new Promise((resolve, reject) => {
 
         Promise.resolve()
-            .then(res => {
-
-                winston.info(`automatic::generate:: call nlp.analizeNLPhrase(phrase)`);
-
-                return nlp.analizeNLPhrase(phrase);
-            })
+            .then(res =>
+                nlp.analizeNLPhrase(video.metadata.phrase))
             .then(topic => {
-
-                winston.info(`automatic::generate:: nlp.analizeNLPhrase(phrase) return value: ${util.inspect(topic)}`);
-
                 /***************************************
                  *
                  * topic.id: 0 - car, model make+name+year
@@ -53,88 +49,83 @@ function generate(phrase , new_folder) {
                  *           2 - car, model make  (manufacture)
                  *           3 - anything else
                  ****************************************/
-                if (topic.id === 0) {
-                    return new Promise((resolve, reject) => {
+                if (topic.id === 0) return customCarScenario(topic);
 
-                        Promise.resolve()
-                            .then(res => {
-                                winston.info(`automatic::generate::calling create car`);
-                                return createCar(topic)
-                            })
-                            .then((car) => {
-                                winston.info(`automatic::generate::calling getCarImages`);
-                                return getCarImages(car, workshop);
+                //topic.id === 1 || topic.id === 2 || topic.id === 3
+                return new Promise((resolve, reject) => {
 
-                            })
-                            .then((car) => {
-                                winston.info(`automatic::generate::calling generateTTsAndSetCaptions`);
-                                return generateTTsAndSetCaptions(car, workshop);
+                    var sentences;
 
-                            })
-                            .then((car) => {
-                                winston.info(`automatic::generate::calling createDataObjectFromCar`);
-                                return createDataObjectFromCar(car, workshop); //for ffmpeg
+                    winston.info(`automatic::generate:: topic.id ${topic.id}`);
 
-                            })
-                            .then((details_for_ffmpeg) => {
-                                ffmpeg_details = details_for_ffmpeg;
-                                resolve(0);
+                    scraper
+                        .getSentences(video.metadata.phrase, configuration.VIDEO.SENTENCE_COUNT)
 
-                            })
-                            .catch((err) => {
-                                winston.info(err);
-                                reject(err);
-                            });
-                    });
-                } else if (topic.id === 1 || topic.id === 2 || topic.id === 3) {
-                    //car.model_make
-                    return new Promise((resolve, reject) => {
+                    .then((result) => {
 
-                        var sentences;
+                            sentences = result;
+                            winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
 
-                        winston.info(`automatic::generate:: topic.id ${topic.id}`);
-                        scraper
-                            .getSentences(phrase, configuration.VIDEO.SENTENCE_COUNT)
-                            .then((result) => {
+                            return scraper.scrapeImages(video.metadata.phrase, sentences.length, video.info.tempFolder, sentences.map((obj, index) => index));
+                        })
+                        .then((files) => {
+                            //                                return createDataObjectGeneral(files, sentences, workshop);
+                            return createInfo_General(files, sentences, video);
+                        })
+                        .then((res) => {
+                            timeLogger_generate.done("automatic.generate");
+                            //ffmpeg_details = details_for_ffmpeg;
+                            return ffmpeg.createCustom(res);
 
-                                sentences = result;
-                                winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
+                        })
+                        .then((res) => resolve(res))
+                        .catch((err) => {
+                            winston.info(err);
+                            reject(err);
+                        });
+                });
 
-                                return scraper.scrapeImages(phrase, sentences.length, workshop, sentences.map((obj, index) => index));
-                            })
-                            .then((files) => {
-                                return createDataObjectGeneral(files, sentences, workshop);
-                            })
-                            .then((details_for_ffmpeg) => {
-                                ffmpeg_details = details_for_ffmpeg;
-                                resolve(0);
-
-                            })
-                            .catch((err) => {
-                                winston.info(err);
-                                reject(err);
-                            });
-                    });
-                } else {
-                    resolve(`cant prepare for this kind of topic. topic.id=${topic.id}`);
-                }
             })
-            .then(res => {
-                if (res === -1) return 'under constructions';
-
-                winston.info(`automatic::generate:: prepare(topic) return value: ${res}`);
-                winston.info(`automatic::generate:: new_folder value: ${new_folder}`);
-                winston.info(`automatic::generate:: ffmpeg_details value: ${util.inspect(ffmpeg_details)}`);
-            
-                return ffmpeg.createCustom(ffmpeg_details, new_folder);
-            })
-            .then(res => {
-                resolve(res);
-            timeLogger_generate.done("automatic.generate");
-            })
+            .then((res) => resolve(res));
     })
 }
 
+function customCarScenario(topic) {
+
+    return new Promise((resolve, reject) => {
+
+        Promise.resolve()
+            .then(res => {
+                winston.info(`automatic::generate::calling create car`);
+                return createCar(topic)
+            })
+            .then((car) => {
+                winston.info(`automatic::generate::calling getCarImages`);
+                return getCarImages(car, video.info.tempFolder);
+
+            })
+            .then((car) => {
+                winston.info(`automatic::generate::calling generateTTsAndSetCaptions`);
+                return generateTTsAndSetCaptions(car, video.info.tempFolder);
+
+            })
+            .then((car) => {
+                winston.info(`automatic::generate::calling createDataObjectFromCar`);
+                return createDataObjectFromCar(car, video.info.tempFolder); //for ffmpeg
+
+            })
+            .then((details_for_ffmpeg) => {
+                ffmpeg_details = details_for_ffmpeg;
+                resolve(0);
+
+            })
+            .catch((err) => {
+                winston.info(err);
+                reject(err);
+            });
+    });
+
+}
 /*
 Get car images from S3
 */
@@ -199,9 +190,9 @@ function generateTTsAndSetCaptions(car, workshop) {
 }
 
 
-function createDataObjectGeneral(files, sentences, workshop) {
+function createInfo_General(files, sentences, video) {
 
-    winston.info(`automatic::createDataObjectGeneral:: sentences are: ${util.inspect(sentences)}`);
+    winston.info(`automatic::createInfo_General:: sentences are: ${util.inspect(sentences)}`);
     return new Promise((resolve, reject) => {
 
         var slidesInfo = [];
@@ -256,14 +247,10 @@ function createDataObjectGeneral(files, sentences, workshop) {
 
         });
 
-        resolve({
-            videoName: 'Unknown',
-            audio: {
-                enable: true,
-                file_path: 'assets/bg_music_0.mp3'
-            },
-            slidesInfo: slidesInfo
-        });
+        video.info.slidesInfo = slidesInfo;
+
+        resolve(video);
+
     });
 }
 
@@ -461,17 +448,19 @@ function createDataObjectFromCar(car, workshop) {
 }
 
 
-//function createNewWorkShopFolder() {
-//    var newFolderName = shortid.generate();
-//
-//    if (fs.existsSync('./workshop/' + newFolderName)) {
-//        //create new newFolderName..
-//    } else {
-//        fs.mkdirSync('./workshop/' + newFolderName);
-//    }
-//
-//    return newFolderName;
-//}
+function createNewWorkShopFolder() {
+    var newFolderName = shortid.generate();
+
+    var path = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
+
+    if (fs.existsSync(path)) {
+        //create new newFolderName..
+    } else {
+        fs.mkdirSync(path);
+    }
+
+    return path;
+}
 
 function createCar(topic) {
     return new Car(topic.model_make, topic.model_name, topic.model_year);

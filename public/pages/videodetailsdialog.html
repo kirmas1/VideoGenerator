@@ -1,0 +1,23 @@
+<md-dialog>
+    <md-toolbar>
+        <div class="md-toolbar-tools">
+            <h2>Details</h2>
+            <span flex></span>
+            <md-button class="md-icon-button" ng-click="cancel()">
+                <md-icon class="glyphicon glyphicon-remove" aria-label="Close dialog"></md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>
+    <br>
+    <md-dialog-content>
+        <ul>
+            <li>Video Name: {{video.videoName.S}}</li>
+            <li>Client Name: {{video.clientName.S}}</li>
+            <li>Video Encoding Duration: {{video.metadata.M.ffmpegProcessDuration.S}}</li>
+            <li>Request Date: {{video.metadata.M.timeCreated.S}}</li>
+            <li>Status: {{getVideoStatus()}}</li>
+        </ul>
+        <md-button ng-click="takeToStudio($event, $index)" class="md-accent">Take to Studio</md-button>
+
+    </md-dialog-content>
+</md-dialog>

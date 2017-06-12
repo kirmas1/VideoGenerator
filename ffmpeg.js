@@ -41,7 +41,9 @@ var me = function () {
         slidesInfo: []
     }
 */
-    var createCustom = function (details, newFolderName) {
+    //var createCustom = function (details, newFolderName) {
+    var createCustom = function (video) {
+        var newFolderName = video.info.tempFolder.substr(video.info.tempFolder.lastIndexOf('/') + 1);
 
         var timeLogger_createCustom = performanceLogger.startTimer();
         winston.info('Let\'s start create cusstom!');
@@ -57,11 +59,11 @@ var me = function () {
         images = [];
         transitions = [];
 
-        for (var i = 0; i < details.slidesInfo.length; i++) {
+        for (var i = 0; i < video.info.slidesInfo.length; i++) {
             if (i % 2 === 0) { // index is even
-                images.push(details.slidesInfo[i]);
+                images.push(video.info.slidesInfo[i]);
             } else {
-                transitions.push(details.slidesInfo[i]);
+                transitions.push(video.info.slidesInfo[i]);
             }
         }
 
@@ -602,7 +604,7 @@ var me = function () {
             var ttsExists = images.reduce((acc, cur) => acc || cur.tts.enable, false);
 
             return new Promise((res, rej) => {
-                overlayAudioToVideo(innerVideoInfo.final_video_path, details.audio.file_path, {
+                overlayAudioToVideo(innerVideoInfo.final_video_path, video.info.audio.file_path, {
                         output: `${workshop}/finalWithMusic.mp4`,
                         ttsExist: ttsExists
                     })
@@ -633,11 +635,7 @@ var me = function () {
         }
 
         return new Promise((resolve, reject) => {
-            //            scalePromise()
-            //                .then(() => {
-            //                    winston.info('Done Scaling');
-            //                    return padPromise();
-            //                })
+
             scalePromise2()
                 .then(() => {
                     winston.info('Done Scaling2');
@@ -677,7 +675,7 @@ var me = function () {
                 })
                 .then(() => {
                     winston.info('Done concatAllPromise');
-                    if (details.audio.enable === true)
+                    if (video.info.audio.enable === true)
                         return overlayAudioToVideoPromise();
                     else
                         return Promise.resolve();
@@ -687,9 +685,10 @@ var me = function () {
                     moveFinalFileToPublic();
                 })
                 .then(() => {
-                timeLogger_createCustom.done("ffmpeg::createCustom");
+                    timeLogger_createCustom.done("ffmpeg::createCustom");
                     winston.info('File moved to public');
-                    resolve('videos\\final_' + newFolderName + '.mp4');
+                    video.metadata.link = 'videos\\final_' + newFolderName + '.mp4';
+                    resolve(video);
                 })
         });
 

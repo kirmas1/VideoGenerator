@@ -95,33 +95,74 @@ app.post('/test', function (req, res) {
 
 app.get('/res/videos/all', function (req, res) {
     res.setHeader('Content-Type', 'application/json');
-    res.end( JSON.stringify(db.res.getAll()) );
+    db.res.video.getAll()
+    .then((list)=>{
+        res.end(JSON.stringify(list));
+    })
 })
 
 app.get('/autogen', function (req, res) {
-    
+
     var timeLogger_autogen = performanceLogger.startTimer();
-    
+
     res.setHeader('Content-Type', 'application/json');
 
-    function createNewWorkShopFolder() {
-        var newFolderName = shortid.generate();
+    //var url_parts = url.parse(req.url, true);
+    var phrase = url.parse(req.url, true).query.q;
 
-        if (fs.existsSync('./workshop/' + newFolderName)) {
-            //create new newFolderName..
-        } else {
-            fs.mkdirSync('./workshop/' + newFolderName);
-        }
+    winston.info('app.get::phrase is ' + phrase);
 
-        return newFolderName;
-    }
+    //    var newVideo = db.res.save({
+    //        timeCreated: formatDate(new Date()),
+    //        date: formatDate(new Date()),
+    //        videoName: url_parts.query.q,
+    //        link: new_folder,
+    //        details: {},
+    //        inProgress: true,
+    //        state: 0 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
+    //    });
 
-    function updateClientandDB(message) {
+    var newVideo = db.res.video.newByPhrase(phrase);
+    res.end(JSON.stringify(newVideo));
+
+    automatic.generate(newVideo)
+        .then((res) => updateClient(res));
+
+    //var new_folder = createNewWorkShopFolder();
+
+    //    automatic.generate(url_parts.query.q, new_folder)
+    //        .then((res) => updateClientandDB({
+    //            link: res.link,
+    //            id: newVideo.id,
+    //            state: 1,
+    //            inProgress: false,
+    //            details: res.details
+    //        }));
+
+    //    function createNewWorkShopFolder() {
+    //        var newFolderName = shortid.generate();
+    //
+    //        if (fs.existsSync('./workshop/' + newFolderName)) {
+    //            //create new newFolderName..
+    //        } else {
+    //            fs.mkdirSync('./workshop/' + newFolderName);
+    //        }
+    //
+    //        return newFolderName;
+    //    }
+
+    //    function updateClientandDB(message) {
+    //        winston.info('server::autogen::updateClientandDB:: message = ' + util.inspect(message));
+    //        db.res.update(message);
+    //        io.sockets.emit('update', message);
+    //    }
+    
+    function updateClient(message) {
         winston.info('server::autogen::updateClientandDB:: message = ' + util.inspect(message));
-        db.res.update(message);
+        
         io.sockets.emit('update', message);
     }
-    
+
     var formatDate = function (date) {
         var monthNames = [
     "January", "February", "March",
@@ -137,33 +178,9 @@ app.get('/autogen', function (req, res) {
         return day + ' ' + monthNames[monthIndex] + ' ' + year;
     }
 
-    //'videos\\final_' + newFolderName + '.mp4'
 
-    var url_parts = url.parse(req.url, true);
-    winston.info('app.get::url_parts.query.q is ' + url_parts.query.q);
 
-    var new_folder = createNewWorkShopFolder();
-    
-    var newVideo = db.res.save({
-        timeCreated: formatDate(new Date()),
-        date: formatDate(new Date()),
-        videoName: url_parts.query.q,
-        link: new_folder,
-        details: {},
-        inProgress: true,
-        state: 0 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
-    });
-    
-    automatic.generate(url_parts.query.q, new_folder)
-        .then((res) => updateClientandDB({
-                link: res,
-                id: newVideo.id,
-                state: 1,
-                inProgress: false
-                })
-             );
 
-    res.end( JSON.stringify(newVideo) );
 
 
     timeLogger_autogen.done("server::autogen:: ack");
