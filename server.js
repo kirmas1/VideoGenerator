@@ -5,11 +5,9 @@ var io = require('socket.io')(server);
 var multer = require('multer');
 var path = require('path');
 var fs = require('fs');
-var exec = require('child_process').exec;
 var util = require('util');
 var formidable = require('formidable');
 var shortid = require('shortid');
-var execFile = require('child_process').execFile;
 var ffmpeg = require('./ffmpeg');
 var os = require("os");
 var url = require('url');
@@ -35,8 +33,6 @@ winston.add(winston.transports.File, {
     json: false,
     prettyPrint: true
 });
-
-
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -95,71 +91,35 @@ app.post('/test', function (req, res) {
 
 app.get('/res/videos/all', function (req, res) {
     res.setHeader('Content-Type', 'application/json');
-    db.res.video.getAll()
-    .then((list)=>{
-        res.end(JSON.stringify(list));
-    })
+    db.Video.getAll()
+        .then((list) => {
+            res.end(JSON.stringify(list));
+        })
 })
 
 app.get('/autogen', function (req, res) {
 
     var timeLogger_autogen = performanceLogger.startTimer();
 
-    res.setHeader('Content-Type', 'application/json');
-
-    //var url_parts = url.parse(req.url, true);
     var phrase = url.parse(req.url, true).query.q;
 
     winston.info('app.get::phrase is ' + phrase);
 
-    //    var newVideo = db.res.save({
-    //        timeCreated: formatDate(new Date()),
-    //        date: formatDate(new Date()),
-    //        videoName: url_parts.query.q,
-    //        link: new_folder,
-    //        details: {},
-    //        inProgress: true,
-    //        state: 0 // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
-    //    });
+    db.Video.newByPhrase(phrase)
+        .then((newVideo) => {
 
-    var newVideo = db.res.video.newByPhrase(phrase);
-    res.end(JSON.stringify(newVideo));
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(newVideo));
 
-    automatic.generate(newVideo)
-        .then((res) => updateClient(res));
+            timeLogger_autogen.done("server::autogen:: ack");
 
-    //var new_folder = createNewWorkShopFolder();
+            automatic.generate(newVideo)
+                .then((res) => updateClient(res));
+        });
 
-    //    automatic.generate(url_parts.query.q, new_folder)
-    //        .then((res) => updateClientandDB({
-    //            link: res.link,
-    //            id: newVideo.id,
-    //            state: 1,
-    //            inProgress: false,
-    //            details: res.details
-    //        }));
-
-    //    function createNewWorkShopFolder() {
-    //        var newFolderName = shortid.generate();
-    //
-    //        if (fs.existsSync('./workshop/' + newFolderName)) {
-    //            //create new newFolderName..
-    //        } else {
-    //            fs.mkdirSync('./workshop/' + newFolderName);
-    //        }
-    //
-    //        return newFolderName;
-    //    }
-
-    //    function updateClientandDB(message) {
-    //        winston.info('server::autogen::updateClientandDB:: message = ' + util.inspect(message));
-    //        db.res.update(message);
-    //        io.sockets.emit('update', message);
-    //    }
-    
     function updateClient(message) {
         winston.info('server::autogen::updateClientandDB:: message = ' + util.inspect(message));
-        
+
         io.sockets.emit('update', message);
     }
 
@@ -179,18 +139,11 @@ app.get('/autogen', function (req, res) {
     }
 
 
-
-
-
-
-    timeLogger_autogen.done("server::autogen:: ack");
-
 })
 
 app.get('*', function (req, res) {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
-
 
 var server = server.listen(3000, function () {
     winston.info('Server listening on port 3000');

@@ -29,12 +29,12 @@ function generate(video) {
 
     var timeLogger_generate = performanceLogger.startTimer();
 
-    winston.info(`automatic::generate::start`);
+    winston.info(`automatic::generate::video = ${util.inspect(video)}`);
 
     video.info.tempFolder = createNewWorkShopFolder();
     video.metadata.state = 0;
     video.metadata.inProgress = true;
-    db.res.video.update(video);
+    db.Video.update(video);
 
     return new Promise((resolve, reject) => {
 
@@ -72,13 +72,17 @@ function generate(video) {
                             //                                return createDataObjectGeneral(files, sentences, workshop);
                             return createInfo_General(files, sentences, video);
                         })
-                        .then((res) => {
+                        .then((video) => {
                             timeLogger_generate.done("automatic.generate");
-                            //ffmpeg_details = details_for_ffmpeg;
-                            return ffmpeg.createCustom(res);
+
+                            return ffmpeg.createCustom(video);
 
                         })
-                        .then((res) => resolve(res))
+                        .then((video) => {
+                           
+                            db.Video.update(video);
+                            resolve(video)
+                        })
                         .catch((err) => {
                             winston.info(err);
                             reject(err);

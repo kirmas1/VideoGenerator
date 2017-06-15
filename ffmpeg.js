@@ -34,18 +34,11 @@ var performanceLogger = new(winston.Logger)({
 
 var me = function () {
 
-    /*
-    details is  {
-        videoName: 'video name',
-        audio: {}
-        slidesInfo: []
-    }
-*/
-    //var createCustom = function (details, newFolderName) {
     var createCustom = function (video) {
-        var newFolderName = video.info.tempFolder.substr(video.info.tempFolder.lastIndexOf('/') + 1);
 
         var timeLogger_createCustom = performanceLogger.startTimer();
+        var newFolderName = video.info.tempFolder.substr(video.info.tempFolder.lastIndexOf('/') + 1);
+
         winston.info('Let\'s start create cusstom!');
 
         var workshop = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
@@ -688,6 +681,8 @@ var me = function () {
                     timeLogger_createCustom.done("ffmpeg::createCustom");
                     winston.info('File moved to public');
                     video.metadata.link = 'videos\\final_' + newFolderName + '.mp4';
+                    video.metadata.inProgress = false;
+                    video.metadata.state = 1;
                     resolve(video);
                 })
         });

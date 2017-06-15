@@ -104,29 +104,25 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
 
         $mdDialog.index = index;
         $mdDialog.show({
-                controller: VideoDialogController,
-                templateUrl: 'pages/videodialog.html',
-                //parent: angular.element(document.body),
-                targetEvent: ev,
-                clickOutsideToClose: true,
-                fullscreen: $scope.customFullscreen // Only for -xs, -sm breakpoints.
-            })
-            .then(function (answer) {}, function () {});
+            controller: playVideoDialogController,
+            templateUrl: 'pages/playVideoDialog.html',
+            //parent: angular.element(document.body),
+            targetEvent: ev,
+            clickOutsideToClose: true,
+            fullscreen: $scope.customFullscreen // Only for -xs, -sm breakpoints.
+        })
     };
 
     $scope.showDetails = function (ev, index) {
 
         $mdDialog.index = index;
         $mdDialog.show({
-                controller: detailsDialogController,
-                templateUrl: 'pages/videodetailsdialog.html',
-                targetEvent: ev,
-                clickOutsideToClose: true,
-                fullscreen: $scope.customFullscreen // Only for -xs, -sm breakpoints.
-            })
-            .then(function (answer) {
-                console.log('answer: ' + answer)
-            }, function () {});
+            controller: detailsDialogController,
+            templateUrl: 'pages/videoDetailsDialog.html',
+            targetEvent: ev,
+            clickOutsideToClose: true,
+            fullscreen: $scope.customFullscreen // Only for -xs, -sm breakpoints.
+        })
     };
 
     function detailsDialogController($scope, $mdDialog) {
@@ -139,9 +135,13 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
                 '1': 'Ready',
                 '2': 'Failed'
             };
-            console.log('getStatus:: ' + statusMap[$scope.video.metadata.M.state.N]);
+            return statusMap[$scope.video.metadata.state];
+        }
 
-            return statusMap[$scope.video.metadata.M.state.N];
+        $scope.takeToStudio = function () {
+            $state.go('manual.instructions', $scope.video);
+            $mdDialog.hide();
+
         }
 
         $scope.closeDialog = function () {
@@ -152,8 +152,14 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
         };
     }
 
-    function VideoDialogController($scope, $mdDialog) {
-        $scope.video = videoService.getItem[$mdDialog.index];
+    function playVideoDialogController($scope, $mdDialog) {
+
+        console.log(`playVideoDialogController:: $mdDialog.index = ${$mdDialog.index}`);
+
+        $scope.video = videoService.getVideoByIndex($mdDialog.index);
+
+        console.log(`playVideoDialogController:: $scope.video.metadata.link = ${$scope.video.metadata.link}`);
+
         $scope.closeDialog = function () {
             $mdDialog.hide();
         }
@@ -222,8 +228,9 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
 }]);
 
 
-myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
+myApp.controller('manualCtrl', ['$scope', '$state', '$stateParams', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $stateParams, $timeout, $mdDialog, videoService) {
 
+    console.log(`manualCtrl:: $stateParams = ${$stateParams}`);
     $scope.selectedIndex = null;
     var uploadClicks = 0;
     $scope.slides = videoService.getSlides();
@@ -363,6 +370,7 @@ myApp.controller('transitionDetailsController', ['$scope', '$state', '$statePara
 
 myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
+    var updateVideoIndex = 0;
     var socket = io.connect('http://localhost:3000');
     //var socket = io.connect('http://ec2-34-208-148-164.us-west-2.compute.amazonaws.com:3000');
 
@@ -371,9 +379,13 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
     });
 
     socket.on('update', function (video) {
-
-        historyList[video.metadata.id] = video;
-
+        for (updateVideoIndex = 0; updateVideoIndex < historyList.length; updateVideoIndex++) {
+            if (historyList[updateVideoIndex].videoName === video.videoName &&
+                historyList[updateVideoIndex].clientName === video.clientName) {
+                historyList[updateVideoIndex] = video;
+                break;
+            }
+        }
     });
 
 
@@ -547,12 +559,9 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
                 var jsonResponse = JSON.parse(xhr.responseText);
 
-                historyList[jsonResponse.metadata.id] = jsonResponse;
+                historyList.push(jsonResponse); 
 
-                //historyList[m_index].link = xhr.responseText;
-                //historyList[m_index].inProgress = true;
                 $rootScope.$digest();
-                console.log("videoService::generateAutomaticVideo::jsonResponse.id is: " + jsonResponse.metadata.id);
             }
         };
         xhr.open("GET", `/autogen/?q=${phrase}`);

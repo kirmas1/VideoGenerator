@@ -22,7 +22,7 @@ var videoSchema = Joi.object().keys({
         state: Joi.number(),
         inProgress: Joi.boolean()
     }),
-    "info": Joi.object().keys({
+    info: Joi.object().keys({
         tempFolder: Joi.string(),
         audio: Joi.object().keys({
             enable: Joi.boolean(),
