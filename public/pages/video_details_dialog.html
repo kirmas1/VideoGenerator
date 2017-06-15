@@ -11,13 +11,13 @@
     <br>
     <md-dialog-content>
         <ul>
-            <li>Video Name: {{video.videoName.S}}</li>
-            <li>Client Name: {{video.clientName.S}}</li>
-            <li>Video Encoding Duration: {{video.metadata.M.ffmpegProcessDuration.S}}</li>
-            <li>Request Date: {{video.metadata.M.timeCreated.S}}</li>
+            <li>Video Name: {{video.videoName}}</li>
+            <li>Client Name: {{video.clientName}}</li>
+            <li>Video Encoding Duration: {{video.metadata.ffmpegProcessDuration}}</li>
+            <li>Request Date: {{video.metadata.timeCreated}}</li>
             <li>Status: {{getVideoStatus()}}</li>
         </ul>
-        <md-button ng-click="takeToStudio($event, $index)" class="md-accent">Take to Studio</md-button>
+        <md-button ng-click="takeToStudio()" class="md-accent">Take to Studio</md-button>
 
     </md-dialog-content>
 </md-dialog>

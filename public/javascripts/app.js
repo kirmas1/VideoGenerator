@@ -105,7 +105,7 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
         $mdDialog.index = index;
         $mdDialog.show({
             controller: playVideoDialogController,
-            templateUrl: 'pages/playVideoDialog.html',
+            templateUrl: 'pages/play_video_dialog.html',
             //parent: angular.element(document.body),
             targetEvent: ev,
             clickOutsideToClose: true,
@@ -118,7 +118,7 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
         $mdDialog.index = index;
         $mdDialog.show({
             controller: detailsDialogController,
-            templateUrl: 'pages/videoDetailsDialog.html',
+            templateUrl: 'pages/video_details_dialog.html',
             targetEvent: ev,
             clickOutsideToClose: true,
             fullscreen: $scope.customFullscreen // Only for -xs, -sm breakpoints.
@@ -372,7 +372,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
     var updateVideoIndex = 0;
     var socket = io.connect('http://localhost:3000');
-    //var socket = io.connect('http://ec2-34-208-148-164.us-west-2.compute.amazonaws.com:3000');
+    //var socket = io.connect('http://ec2-35-162-54-141.us-west-2.compute.amazonaws.com:3000');
 
     socket.on('connection approved', function (data) {
         console.log('connection approved ' + data);
@@ -420,7 +420,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
                 }
 
             };
-            xhr.open("GET", `/res/videos/all`);
+            xhr.open("GET", `/res/videos/all`, true);
             xhr.send();
         });
     }
@@ -564,7 +564,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
                 $rootScope.$digest();
             }
         };
-        xhr.open("GET", `/autogen/?q=${phrase}`);
+        xhr.open("GET", `/autogen/?q=${phrase}`, true);
         xhr.send();
     }
 
@@ -610,7 +610,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
             }
         };
 
-        xhr.open("POST", "/test");
+        xhr.open("POST", "/test", true);
         xhr.send(formData);
         console.log('-----mmmmm------client1');
 

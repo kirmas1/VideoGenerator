@@ -1,0 +1,19 @@
+<md-dialog>
+    <md-toolbar>
+        <div class="md-toolbar-tools">
+            <h2>Enjoy your video</h2>
+            <span flex></span>
+            <md-button class="md-icon-button" ng-click="cancel()">
+                <md-icon class="glyphicon glyphicon-remove" aria-label="Close dialog"></md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>
+    <br>
+    <md-dialog-content>
+        <video style="width: 800px; height: 450px; left: 0px; top: 0px; opacity: 1; objec-fit:contain background-color: #424242; -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);" controls>
+            <source src={{video.metadata.link}} type="video/mp4">
+            <source src="movie.ogg" type="video/ogg"> Your browser does not support the video tag.
+        </video>
+    </md-dialog-content>
+</md-dialog>
