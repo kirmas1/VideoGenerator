@@ -22,12 +22,13 @@
             <!-------------- Zoom ------------------->
 
             <md-switch class="md-accent" md-no-ink aria-label="Zoom Effect" ng-model="item.zoom.enabled">
-                Zoom Effect
+                Image Effect
             </md-switch>
 
             <md-radio-group layout="row" ng-disabled="!item.zoom.enabled" ng-model="item.zoom.style">
-                <md-radio-button value=0> Center </md-radio-button>
-                <md-radio-button value=1>Random near center</md-radio-button>
+                <md-radio-button value=0> Zoom to Center </md-radio-button>
+                <md-radio-button value=1>Zoom to random near center</md-radio-button>
+                <md-radio-button value=2>Sliding camera horizontally</md-radio-button>
             </md-radio-group>
         </div>
         <!------------- caption ------------------------>
@@ -61,6 +62,7 @@
                         <md-option value=0><em>None</em></md-option>
                         <md-option value=1><em>Sliding Right</em></md-option>
                         <md-option value=2><em>Fade In Out</em></md-option>
+                        <md-option value=3><em>Rolling</em></md-option>
                     </md-select>
                 </md-input-container>
 
