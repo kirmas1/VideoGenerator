@@ -20,7 +20,7 @@
             <!----------------Slides in the side List ----------------->
 
             <div ng-repeat="item in slides" class="repeated-item">
-                <md-list-item ng-click="goToSlideDetails($index, item.type)" layout="row" ng-class="{'selectedIndex': selectedIndex==$index, 'md-2-line': tem.type == 0, 'md-offset': item.type == 1}">
+                <md-list-item ng-click="goToSlideDetails($index, item.type)" layout="row" ng-class="{'selectedIndex': selectedIndex==$index, 'md-2-line': item.type == 0, 'md-offset': item.type == 1}">
                     <div flex="70" layout="row">
                         <img ng-show="item.type==0" ng-src={{item.thumbnail}} class="md-avatar" alt="Blend" />
                         <div ng-show="item.type==0" class="md-list-item-text">

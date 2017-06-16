@@ -139,7 +139,8 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
         }
 
         $scope.takeToStudio = function () {
-            $state.go('manual.instructions', $scope.video);
+            videoService.loadVideoDetailsToStudio($mdDialog.index);
+            $state.go('manual.instructions');
             $mdDialog.hide();
 
         }
@@ -228,13 +229,14 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
 }]);
 
 
-myApp.controller('manualCtrl', ['$scope', '$state', '$stateParams', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $stateParams, $timeout, $mdDialog, videoService) {
+myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
 
-    console.log(`manualCtrl:: $stateParams = ${$stateParams}`);
     $scope.selectedIndex = null;
+    
     var uploadClicks = 0;
     $scope.slides = videoService.getSlides();
 
+    
     $scope.$watch('selectedIndex', function (newValue, oldValue) {
         if (newValue != oldValue && newValue != null && oldValue == null) {
             console.log('Ohh ohhhhh');
@@ -401,9 +403,9 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
     */
     var historyList = [];
 
-    var loadVideoDetails = function (id) {
-        video = historyList[id];
-        $rootScope.digest();
+    var loadVideoDetailsToStudio = function (index) {
+        video.slides = historyList[index].info.slidesInfo;
+        video.name = historyList[index].videoName;
     }
 
     var getVideoHistoryList = function () {
@@ -625,7 +627,8 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
         generateAutomaticVideo: generateAutomaticVideo,
         getVideoHistoryList: getVideoHistoryList,
         getLink: getLink,
-        getVideoByIndex: getVideoByIndex
+        getVideoByIndex: getVideoByIndex,
+        loadVideoDetailsToStudio: loadVideoDetailsToStudio
     };
             }])
 
