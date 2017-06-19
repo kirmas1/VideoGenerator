@@ -208,17 +208,17 @@ function createInfo_General(files, sentences, video) {
                 fileName: files[index],
                 caption: {
                     text: sentence,
-                    font: 'OpenSans',
+                    font: 'Open Sans',
                     fontsize: 72,
                     bold: true,
                     italic: false,
-                    effect: 4,
+                    effect: 3,
                     //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
                     startTime: 0,
                     duration: 4 //Doesn't matter when tts is true! Or when effect=1 (Sliding from left)
                 },
                 tts: {
-                    enable: false
+                    enable: true
                 },
                 zoom: {
                     enabled: true,

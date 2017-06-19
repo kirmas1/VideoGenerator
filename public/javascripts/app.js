@@ -81,15 +81,25 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             })
   }]);
 
-myApp.controller('mainNavCtrl', ['$scope', '$state', function ($scope, $state) {
+myApp.controller('mainNavCtrl', ['$scope', '$state', 'videoService', function ($scope, $state, videoService) {
+
     $scope.currentNavItem = 'Automatic';
+
+    $scope.$on('videosHistoryCtrl.takeToStudio', function (event, args) {
+        $scope._goto(args.state);
+    });
+
     $scope._goto = function (state) {
+        
         console.log('mainNavCtrl acitve');
+        
+        $scope.currentNavItem = state === 'automatic' ? 'Automatic' : 'Manual';
         $state.go(state);
     }
+
 }]);
 
-myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoService', function ($scope, $state, $mdDialog, videoService) {
+myApp.controller('videosHistoryCtrl', ['$scope', '$rootScope', '$state', '$mdDialog', 'videoService', function ($scope, $rootScope, $state, $mdDialog, videoService) {
 
     $scope.videoHistoryList = [];
 
@@ -97,7 +107,7 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
         .then((res) => {
             $scope.videoHistoryList = res;
             $scope.$digest();
-            console.log('videosHistoryCtrl:: res is ' + res);
+            //console.log('videosHistoryCtrl:: res is ' + res);
         });
 
     $scope.playVideo = function (ev, index) {
@@ -140,7 +150,13 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
 
         $scope.takeToStudio = function () {
             videoService.loadVideoDetailsToStudio($mdDialog.index);
-            $state.go('manual.instructions');
+ 
+            console.log(`detailsDialogController::takeToStudio `);
+            
+            $rootScope.$broadcast('videosHistoryCtrl.takeToStudio', {
+                state: 'manual.instructions'
+            });
+
             $mdDialog.hide();
 
         }
@@ -172,7 +188,7 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$state', '$mdDialog', 'videoSe
 }]);
 
 myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($scope, $q, videoService) {
-    console.log(`automaticCtrl`);
+    //console.log(`automaticCtrl`);
 
     $scope.searchText = '';
 
@@ -181,7 +197,7 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
 
     $scope.generateAutomaticVideo = function () {
 
-        console.log(`automaticCtrl::genrateAutomaticVideo::search  = ${$scope.searchText}`);
+        //console.log(`automaticCtrl::genrateAutomaticVideo::search  = ${$scope.searchText}`);
 
         if ($scope.searchText) videoService.generateAutomaticVideo($scope.searchText);
         $scope.searchText = '';
@@ -232,14 +248,14 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
 myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
 
     $scope.selectedIndex = null;
-    
+
     var uploadClicks = 0;
     $scope.slides = videoService.getSlides();
 
-    
+
     $scope.$watch('selectedIndex', function (newValue, oldValue) {
         if (newValue != oldValue && newValue != null && oldValue == null) {
-            console.log('Ohh ohhhhh');
+            //console.log('Ohh ohhhhh');
             $scope.goToSlideDetails(newValue, 0);
         }
 
@@ -370,14 +386,14 @@ myApp.controller('transitionDetailsController', ['$scope', '$state', '$statePara
 
 
 
-myApp.factory('videoService', ['$rootScope', function ($rootScope) {
+myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $state) {
 
     var updateVideoIndex = 0;
     var socket = io.connect('http://localhost:3000');
     //var socket = io.connect('http://ec2-35-162-54-141.us-west-2.compute.amazonaws.com:3000');
 
     socket.on('connection approved', function (data) {
-        console.log('connection approved ' + data);
+        //console.log('connection approved ' + data);
     });
 
     socket.on('update', function (video) {
@@ -561,7 +577,7 @@ myApp.factory('videoService', ['$rootScope', function ($rootScope) {
 
                 var jsonResponse = JSON.parse(xhr.responseText);
 
-                historyList.push(jsonResponse); 
+                historyList.push(jsonResponse);
 
                 $rootScope.$digest();
             }

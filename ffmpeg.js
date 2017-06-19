@@ -186,19 +186,19 @@ var me = function () {
                                 res(0);
                             })
                             break;
+//                        case 3:
+//                            //Rolling text effect. Deprecated
+//                            var str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n");
+//
+//                            if (ele.caption.font_size === 36)
+//                                str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n\n");
+//
+//                            fs.writeFile(`${workshop}/caption_${index}.txt`, str3, (err) => {
+//                                res(0);
+//                            })
+//                            break;
                         case 3:
-                            //Rolling text effect. 
-                            var str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n");
-
-                            if (ele.caption.font_size === 36)
-                                str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n\n");
-
-                            fs.writeFile(`${workshop}/caption_${index}.txt`, str3, (err) => {
-                                res(0);
-                            })
-                            break;
-                        case 4:
-                            //Testing RollingText2
+                            //RollingText2
                             var str3 = breakStr(ele.caption.text, 20);
 
                             if (innerVideoInfo.slides[index] === undefined)
