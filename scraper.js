@@ -17,13 +17,13 @@ function getSentences(topic, n) {
         winston.info(`scraper::getSentences:: topic is: ${topic} \n n is ${n}`);
 
         osmosis
-        //            .get(`https://en.wikipedia.org/wiki/${topic}`)
             .get('https://en.wikipedia.org/wiki/Main_Page')
             .submit(".//*[@id='searchButton']", {
                 search: topic
             })
             .set({
-                'first_ps': [`//p[position() < ${config.WIKI_P_COUNT + 1}]`] //index starting from 1 (Xpath..)
+                'followLinkInCaseOfMissMatch': [".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a"],
+                'first_ps': [`//p[position() < ${config.WIKI_P_COUNT + 1} and parent::div]`] //index starting from 1 (Xpath..)
             })
             .data(function (data) {
 
@@ -98,8 +98,25 @@ function getSentences(topic, n) {
 
                 };
 
-                if (data.first_ps.length === 0)
-                    winston.info(`scraper::getSentences:: Didnt found anything on wiki`);
+                if (data.first_ps[0].indexOf('does not exist') !== -1) {
+
+                    if (data.followLinkInCaseOfMissMatch.length === 0) {
+                        winston.info(`scraper::getSentences:: Didnt found anything on wiki and no alternatives from wiki`);
+                        reject(1);
+                    }
+
+                    winston.info(`scraper::getSentences:: Didnt found anything on wiki trying first suggestion of wiki`);
+
+                    osmosis
+                        .follow(".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a")
+                        .set({
+                            'first_ps': [`//p[position() < ${config.WIKI_P_COUNT + 1} and parent::div]`]
+                        })
+                        .data(function (data) {
+                            console.log(`scraper::getSentences:: data after retry = ${data.first_ps}`);
+                        })
+                }
+
 
                 var filtered_p_s = data.first_ps.filter(function (word) {
                     return word.length > 0;
@@ -112,25 +129,16 @@ function getSentences(topic, n) {
                     if (filtered_p_s[firstPIndex].toLowerCase().indexOf(topic.toLowerCase()) >= 0)
                         break;
                     if (filtered_p_s.length - 1 === firstPIndex) {
-                        winston.info(`scraper::getSentences::Topic didnt match any P in wiki. Going for first P`);
                         firstPIndex = 0;
                         break;
                     }
                     firstPIndex++;
                 }
-                winston.info(`scraper::getSentences:: firstPIndex:: ${firstPIndex}`);
-                //                winston.info(`scraper::getSentences:: filtered_p_s[firstPIndex]: ${filtered_p_s[firstPIndex]}`);
-
-                //var firstP = removeRoundBrackets(filtered_p_s[firstPIndex].replace(/ *\[[^)]*\] */g, ""));
-
                 var firstP = removeRoundBrackets(removeSquareBrackets(filtered_p_s[firstPIndex]));
-
-                //winston.info(`scraper::getSentences:: firstP: ${firstP}`);
 
                 var sentences = summarizer.splitToSentences(firstP).filter(function (word) {
                     return word.length > 10;
                 });
-
 
                 var similarityGraph = summarizer.getSimilarityGraph(sentences);
                 var textRank = summarizer.getTextRank(similarityGraph).probabilityNodes;
@@ -149,6 +157,116 @@ function getSentences(topic, n) {
                 resolve(result);
             })
     });
+}
+
+/*
+Get pharse and search for it in wikipedia. 
+Return a Promise of object as following: 
+{
+    status: int, // 0 = Phrase exist on wiki and data contains first P.
+                    1 = Phrase not exist on wiki but wiki suggest misspell, and data contains first P of wiki suggestion
+                    2 = Phrase not exist at all. data is null
+    data: string
+}
+
+Basically go for wiki main page and search the phrase then ..
+*/
+function scrapeWiki(pharse) {
+
+    function a(phrase) {
+
+        return new Promise((resolve, reject) => {
+
+            var result = {
+                status: null, // 0 - ok. 1 - try suggestion. 2 - failed and there is no suggestion
+                data: null
+            };
+
+            osmosis
+                .get('https://en.wikipedia.org/wiki/Main_Page')
+                .submit(".//*[@id='searchButton']", {
+                    search: phrase
+                })
+                .set({
+                    'followLinkInCaseOfMissMatch': [".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a"],
+                    'first_ps': [`//p[position() < 2 and parent::div]`] //index starting from 1 (Xpath..)
+                })
+                .then(function (context, data, next, done) {
+
+                    if (data.first_ps[0].indexOf('does not exist') !== -1) {
+                        if (data.followLinkInCaseOfMissMatch.length === 0)
+                            result.status = 2;
+                        else
+                            result.status = 1;
+                    } else {
+                        result.status = 0;
+                        result.data = data.first_ps[0];
+                    }
+                    done();
+                })
+                .done(function () {
+                    resolve(result);
+                })
+        })
+    }
+
+    function b(phrase) {
+        return new Promise((resolve, reject) => {
+            var result;
+
+            osmosis
+                .get('https://en.wikipedia.org/wiki/Main_Page')
+                .submit(".//*[@id='searchButton']", {
+                    search: phrase
+                })
+                .follow(".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a")
+                .set({
+
+                    'first_ps': [`//p[position() < 2 and parent::div]`] //index starting from 1 (Xpath..)
+                })
+                .then(function (context, data, next, done) {
+                    //TODO check for errors
+                    result = data.first_ps[0]
+                    done();
+                })
+                .done(function () {
+                    resolve(result);
+                })
+        })
+    }
+
+    return new Promise((resolve, reject) => {
+
+        var finalResult = {
+            status: null,
+            data: null
+        }
+
+        a(pharse)
+            .then((result) => {
+
+                if (result.status === 0) {
+
+                    finalResult.status = 0;
+                    finalResult.data = result.data;
+                    resolve(finalResult);
+
+                } else if (result.status === 1) {
+                    b(pharse)
+                        .then((result) => {
+                            finalResult.status = 1;
+                            finalResult.data = result;
+                            resolve(finalResult);
+                        })
+                } else {
+                    finalResult.status = 2;
+                    finalResult.data = "The phrase isn't exist on wiki";
+                    resolve(finalResult);
+                }
+                
+            })
+    })
+
 }
 
 /*
@@ -241,5 +359,7 @@ function downloadFile(uri, filename) {
 
 module.exports = {
     getSentences: getSentences,
-    scrapeImages: scrapeImages
+    scrapeImages: scrapeImages,
+    scrapeWiki: scrapeWiki
 }
+
