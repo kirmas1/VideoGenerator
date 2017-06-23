@@ -1,4 +1,5 @@
 var textrank = require('textrank-node');
+var summarizer = new textrank();
 var osmosis = require('osmosis');
 const request = require('request');
 const fs = require('fs');
@@ -160,6 +161,81 @@ function getSentences(topic, n) {
 }
 
 /*
+Get n most important sentences from wiki first P of the Topic.
+Using textRank. return Promise.
+
+Return a Promise of object as following: 
+{
+    status: int, // 0 = Phrase exist on wiki and data contains the sentences.
+                    1 = Phrase not exist on wiki but wiki suggest misspell, and data contains the sentences of wiki suggestion
+                    2 = Phrase not exist at all. data is null
+    data: []
+}
+
+*/
+function getSentences2(topic, n) {
+
+    var result = {
+        status: null,
+        data: []
+    };
+    winston.info(`scraper::getSentences2:: topic is: ${topic} \n n is ${n} \n`);
+
+    return new Promise((resolve, reject) => {
+
+        scrapeWiki(topic)
+            .then((resp) => {
+
+                result.status = resp.status;
+                if (result.status === 2) resolve(result);
+                else {
+                    summerize(resp.data, n).then((sentences) => {
+                        result.data = sentences;
+                        resolve(result);
+                    })
+                }
+
+
+            })
+    })
+
+}
+
+/*
+Return Promise contains array of n most important sentences of the text.
+
+First remove brackest then use textRank.
+ */
+function summerize(text, n) {
+
+    return new Promise((resolve, reject) => {
+
+        var result = [];
+        var clearedText = removeRoundBrackets(removeSquareBrackets(text));
+
+        //
+        var sentences = summarizer.splitToSentences(clearedText).filter(function (word) {
+            return word.length > 10;
+        });
+
+        var similarityGraph = summarizer.getSimilarityGraph(sentences);
+        var probabilityNodes = summarizer.getTextRank(similarityGraph).probabilityNodes;
+        var selectedIndex = summarizer.getSelectedIndex(probabilityNodes, n);
+
+        function sortNumber(a, b) {
+            return a - b;
+        }
+
+        selectedIndex.sort(sortNumber);
+        for (i in selectedIndex) {
+            result.push(sentences[i]);
+        }
+
+        resolve(result);
+    });
+}
+
+/*
 Get pharse and search for it in wikipedia. 
 Return a Promise of object as following: 
 {
@@ -189,11 +265,12 @@ function scrapeWiki(pharse) {
                 })
                 .set({
                     'followLinkInCaseOfMissMatch': [".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a"],
-                    'first_ps': [`//p[position() < 2 and parent::div]`] //index starting from 1 (Xpath..)
+                    'first_ps': [`//p[position() < 3 and parent::div and ./b]`] //index starting from 1 (Xpath..)
                 })
                 .then(function (context, data, next, done) {
 
-                    if (data.first_ps[0].indexOf('does not exist') !== -1) {
+                    //if (data.first_ps[0].indexOf('does not exist') !== -1)
+                    if (data.first_ps.length === 0) {
                         if (data.followLinkInCaseOfMissMatch.length === 0)
                             result.status = 2;
                         else
@@ -222,7 +299,7 @@ function scrapeWiki(pharse) {
                 .follow(".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a")
                 .set({
 
-                    'first_ps': [`//p[position() < 2 and parent::div]`] //index starting from 1 (Xpath..)
+                    'first_ps': [`//p[position() < 3 and parent::div and ./b]`] //index starting from 1 (Xpath..)
                 })
                 .then(function (context, data, next, done) {
                     //TODO check for errors
@@ -263,7 +340,7 @@ function scrapeWiki(pharse) {
                     finalResult.data = "The phrase isn't exist on wiki";
                     resolve(finalResult);
                 }
-                
+
             })
     })
 
@@ -357,9 +434,79 @@ function downloadFile(uri, filename) {
     });
 };
 
+function removeRoundBrackets(str) {
+
+    function cutTheBullshit(str) {
+
+        var i = 0;
+        var counter = 0;
+        var firstIndex = -1;
+
+        while (i < str.length) {
+
+            if (str.charAt(i) === '(') {
+
+                counter++;
+                if (counter === 1) firstIndex = i;
+            }
+
+            if (str.charAt(i) === ')') {
+                if (counter === 1)
+                    return str.substr(0, firstIndex) + str.substr(i + 1);
+                else if (counter > 1) {
+                    counter--;
+                }
+            }
+
+            i++;
+        }
+    }
+
+    while (str.indexOf('(') !== -1)
+        str = cutTheBullshit(str);
+    return str;
+
+};
+
+function removeSquareBrackets(str) {
+
+    function cutTheBullshit(str) {
+
+        var i = 0;
+        var counter = 0;
+        var firstIndex = -1;
+
+        while (i < str.length) {
+
+            if (str.charAt(i) === '[') {
+
+                counter++;
+                if (counter === 1) firstIndex = i;
+            }
+
+            if (str.charAt(i) === ']') {
+                if (counter === 1)
+                    return str.substr(0, firstIndex) + str.substr(i + 1);
+                else if (counter > 1) {
+                    counter--;
+                }
+            }
+
+            i++;
+        }
+    }
+
+    while (str.indexOf('[') !== -1) {
+        str = cutTheBullshit(str);
+    }
+
+    return str;
+
+};
+
 module.exports = {
     getSentences: getSentences,
+    getSentences2: getSentences2,
     scrapeImages: scrapeImages,
     scrapeWiki: scrapeWiki
 }
-
