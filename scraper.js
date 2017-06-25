@@ -187,6 +187,7 @@ function getSentences2(topic, n) {
             .then((resp) => {
 
                 result.status = resp.status;
+                result.determinedTopic = resp.determinedTopic;
                 if (result.status === 2) resolve(result);
                 else {
                     summerize(resp.data, n).then((sentences) => {
@@ -194,8 +195,51 @@ function getSentences2(topic, n) {
                         resolve(result);
                     })
                 }
+            })
+    })
 
+}
 
+/*
+Get sentences for URL scenario.
+Return a Promise of object as following: 
+{
+    status: int, // 0 = Phrase exist on wiki and data contains the sentences.
+                    1 = Phrase not exist on wiki but wiki suggest misspell, and data contains the sentences of wiki suggestion
+                    2 = Phrase not exist at all. data is null
+    data: []
+}
+
+*/
+function getSentences3(url, topic, n) {
+
+    var result = {
+        status: null,
+        data: []
+    };
+    winston.info(`scraper::getSentences3:: topic is: ${topic} \n n is ${n} \n`);
+
+    return new Promise((resolve, reject) => {
+
+        getHeadLine(url)
+            .then((resp) => {
+
+                result.data.push(resp);
+                return scrapeWiki(topic);
+
+            })
+            .then((resp) => {
+
+                result.determinedTopic = resp.determinedTopic;
+                result.status = resp.status;
+
+                if (result.status === 2) resolve(result);
+                else {
+                    summerize(resp.data, n - 1).then((sentences) => {
+                        result.data = result.data.concat(sentences)
+                        resolve(result);
+                    })
+                }
             })
     })
 
@@ -242,12 +286,13 @@ Return a Promise of object as following:
     status: int, // 0 = Phrase exist on wiki and data contains first P.
                     1 = Phrase not exist on wiki but wiki suggest misspell, and data contains first P of wiki suggestion
                     2 = Phrase not exist at all. data is null
-    data: string
+    data: string,
+    determinedTopic: string
 }
 
 Basically go for wiki main page and search the phrase then ..
 */
-function scrapeWiki(pharse) {
+function scrapeWiki(phrase) {
 
     function a(phrase) {
 
@@ -289,12 +334,21 @@ function scrapeWiki(pharse) {
 
     function b(phrase) {
         return new Promise((resolve, reject) => {
-            var result;
+            var result = {
+                data: null,
+                determinedTopic: null
+            };
 
             osmosis
                 .get('https://en.wikipedia.org/wiki/Main_Page')
                 .submit(".//*[@id='searchButton']", {
                     search: phrase
+                })
+                .set({
+                    wikiSuggest: ".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a"
+                })
+                .data(function (d) {
+                    result.determinedTopic = d.wikiSuggest;
                 })
                 .follow(".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a")
                 .set({
@@ -303,7 +357,7 @@ function scrapeWiki(pharse) {
                 })
                 .then(function (context, data, next, done) {
                     //TODO check for errors
-                    result = data.first_ps[0]
+                    result.data = data.first_ps[0]
                     done();
                 })
                 .done(function () {
@@ -316,10 +370,11 @@ function scrapeWiki(pharse) {
 
         var finalResult = {
             status: null,
-            data: null
+            data: null,
+            determinedTopic: phrase
         }
 
-        a(pharse)
+        a(phrase)
             .then((result) => {
 
                 if (result.status === 0) {
@@ -329,10 +384,11 @@ function scrapeWiki(pharse) {
                     resolve(finalResult);
 
                 } else if (result.status === 1) {
-                    b(pharse)
+                    b(phrase)
                         .then((result) => {
                             finalResult.status = 1;
-                            finalResult.data = result;
+                            finalResult.data = result.data;
+                            finalResult.determinedTopic = result.determinedTopic;
                             resolve(finalResult);
                         })
                 } else {
@@ -347,7 +403,12 @@ function scrapeWiki(pharse) {
 }
 
 /*
-Download images from the internet using BingAPI to get the resources. 
+Download images from the internet using BingAPI to get the resources.
+Return: 
+[{
+    fileName: String,
+    fileURL: String
+}, ...]
 */
 function scrapeImages(topic, n, path, fileNames) {
 
@@ -357,7 +418,7 @@ function scrapeImages(topic, n, path, fileNames) {
             uri: `https://api.cognitive.microsoft.com/bing/v5.0/images/search?q=${topic}&count=${n*5}`,
             method: "GET",
             headers: {
-                'Ocp-Apim-Subscription-Key': '584ae6a3e97f413490148afa8fe95491',
+                'Ocp-Apim-Subscription-Key': '6a0a073bf2d2407aab3d825ed3a6c517',
                 'imageType': 'Photo',
                 'license': 'Any',
                 'size': 'Large'
@@ -371,6 +432,7 @@ function scrapeImages(topic, n, path, fileNames) {
                 // Parse body, if body
                 body = typeof body === 'string' ? JSON.parse(body) : body;
             }
+
             winston.info(`scraper::scrapeImages:: body.value.length is: ${body.value.length}`);
 
             sanitize(body.value, n)
@@ -414,7 +476,14 @@ function scrapeImages(topic, n, path, fileNames) {
     });
 }
 
-function downloadFile(uri, filename) {
+/*
+Download the file and return Promise contains:
+{
+    fileName: String,
+    fileURL: String (uri)
+}
+*/
+function downloadFile(uri, path) {
 
     return new Promise((resolve, reject) => {
         //        request.head(uri, function (err, res, body) {
@@ -425,12 +494,14 @@ function downloadFile(uri, filename) {
         //            winston.info('----------------------------------------------');
         //
         request(uri)
-            .pipe(fs.createWriteStream(filename))
+            .pipe(fs.createWriteStream(path))
             .on('close', () => {
                 winston.info(`scraper::downloadFile:: close pipe`);
-                resolve(filename.substr(filename.lastIndexOf('/') + 1));
+                resolve({
+                    fileName: path.substr(path.lastIndexOf('/') + 1),
+                    fileURL: uri
+                })
             });
-        //        });
     });
 };
 
@@ -504,9 +575,29 @@ function removeSquareBrackets(str) {
 
 };
 
+/*
+Return Promise with the title of the url 
+*/
+function getHeadLine(url) {
+
+    return new Promise((resolve, reject) => {
+        osmosis
+            .get(url)
+            .set({
+                title: '//head/title'
+            })
+            .data(function (data) {
+                console.log(`scraper::getHeadLine:: data.title = ${data.title}`);
+                resolve(data.title);
+            })
+    });
+}
+
 module.exports = {
     getSentences: getSentences,
     getSentences2: getSentences2,
+    getSentences3: getSentences3,
     scrapeImages: scrapeImages,
-    scrapeWiki: scrapeWiki
+    scrapeWiki: scrapeWiki,
+    getHeadLine: getHeadLine
 }

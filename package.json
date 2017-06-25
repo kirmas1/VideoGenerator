@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.43.0",
+    "compromise": "^10.5.2",
     "dynadoc": "^0.8.2",
     "dynogels": "^8.0.1",
     "express": "^4.14.1",

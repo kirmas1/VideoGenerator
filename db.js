@@ -32,6 +32,7 @@ module.exports = {
                 metadata: {
                     origin: 1,
                     phrase: input_phrase,
+                    determinedTopic: null,
                     url: null,
                     timeCreated: (new Date()).toString(), //The request
                     ffmpegProcessDuration: null,

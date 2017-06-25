@@ -7,6 +7,7 @@ var ffmpeg = configuration.FFMPEG_PATH;
 var ffprobe = configuration.FFPROBE_PATH;
 var shortid = require('shortid');
 var winston = require('winston');
+var imgRecognition = require('./imageProcessing');
 
 var path_prefix = configuration.OS == 'linux' ? './' : '';
 
@@ -101,16 +102,28 @@ var me = function () {
             var crop_requests = images.map(function (ele, index) {
                 return new Promise(function (resolve) {
 
-                    var filter = 'crop=1280:720';
-                    var child = execFile(ffmpeg, ['-i', `${workshop}/scaled_${index}.jpg`, '-vf', filter, workshop + '/scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
-                        if (error) {
-                            throw error;
+                    imgRecognition.recognizeFaces(ele.fileURL).then((resp) => {
+                        var y = '(in_h-out_h)/2';
+                        if (resp.length > 0) {
+                            y = (resp[0].faceRectangle.top - 20) < 0 ? y : resp[0].faceRectangle.top - 20;
+                            
                         }
-                        ffmpegLogger.info(`ffmpeg::cropPromise::stderr: ${stderr}`);
-                        resolve(0);
-                    });
+
+                        return Promise.resolve(y);
+                    }).then((y) => {
+
+                        var filter = 'crop=w=1280:h=720:x=(in_w-out_w)/2:y=' + y;
+                        var child = execFile(ffmpeg, ['-i', `${workshop}/scaled_${index}.jpg`, '-vf', filter, workshop + '/scaled_padded' + index + '.jpg'], (error, stdout, stderr) => {
+                            if (error) {
+                                throw error;
+                            }
+                            ffmpegLogger.info(`ffmpeg::cropPromise::stderr: ${stderr}`);
+                            resolve(0);
+                        });
+                    })
                 });
             });
+
             return Promise.all(crop_requests);
         }
 
@@ -186,18 +199,19 @@ var me = function () {
                                 res(0);
                             })
                             break;
-//                        case 3:
-//                            //Rolling text effect. Deprecated
-//                            var str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n");
-//
-//                            if (ele.caption.font_size === 36)
-//                                str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n\n");
-//
-//                            fs.writeFile(`${workshop}/caption_${index}.txt`, str3, (err) => {
-//                                res(0);
-//                            })
-//                            break;
+                            //                        case 3:
+                            //                            //Rolling text effect. Deprecated
+                            //                            var str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n");
+                            //
+                            //                            if (ele.caption.font_size === 36)
+                            //                                str3 = ele.caption.text.replace(/(?:\r\n|\r|\n)/g, "\n\n\n");
+                            //
+                            //                            fs.writeFile(`${workshop}/caption_${index}.txt`, str3, (err) => {
+                            //                                res(0);
+                            //                            })
+                            //                            break;
                         case 3:
+                        case 4:
                             //RollingText2
                             var str3 = breakStr(ele.caption.text, 20);
 
@@ -353,6 +367,8 @@ var me = function () {
                         return rollingTextEffect(`${workshop}/zoomeffect_${index}.mp4`, `${workshop}/zt_${index}.mp4`, case_3_options);
                         break;
                     case 4:
+                        winston.info(`ffmpeg::drawTextPromise::case4::\n innerVideoSlides = ${util.inspect(innerVideoInfo)}`);
+                        winston.info(`ffmpeg::drawTextPromise::case4::\n index = ${index}`);
                         //Testing RollingText2
                         var blocks_count = innerVideoInfo.slides[index].caption.total_blocks;
                         var _block_displays_t = [];
@@ -1132,9 +1148,7 @@ var me = function () {
                         }).on('exit', (code, signal) => {
                             winston.info(`ffmpeg::rollingTextEffect:: on('exit', code: ${code}`);
                             winston.info(`ffmpeg::rollingTextEffect:: on('exit', signal: ${signal}`);
-                            //                        fs.unlink(`assets/temp.mp4`, (err) => {
-                            //                            if (err) throw err;
-                            //                        });
+
                             return resolve(0);
                         });
                     });

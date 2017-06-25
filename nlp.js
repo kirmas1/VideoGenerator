@@ -1,5 +1,7 @@
 var util = require('util');
 var textrank = require('textrank-node');
+var compromise = require('compromise')
+var scraper = require('./scraper');
 var winston = require('winston');
 
 module.exports = {
@@ -16,21 +18,35 @@ var model_make_and_name_con = model_make_list.concat(model_name_list);
 
 
 function summerize(text, n) {
-    
+
     var summarizer = new textrank();
     return summarizer.summarize(text, n);
-    
+
 }
 
 /**************************************************
- *   Get a natural text and return the appropriate object
+ *   Filtering Custom (car) Or General flow.
+ *  Returning analizeCarPhrase Or analizeGeneralPhrase
  *
  **************************************************/
 function analizeNLPhrase(phrase) {
 
     winston.info(`nlp::analizeNLPhrase:: phrase is: ${phrase}`);
 
-    switch (getTopic(phrase)) {
+    var ph_units = phrase.split(' ');
+    winston.info(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
+
+    var result = 3;
+
+    var filteredPhraseUnits = ph_units.filter((ele) => {
+        if (model_make_and_name_con.indexOf(ele) === -1)
+            return false;
+        return true;
+    });
+
+    if (filteredPhraseUnits.length > 0) result = 0;
+
+    switch (result) {
 
         case 0: //car
             return analizeCarPhrase(phrase);
@@ -43,42 +59,65 @@ function analizeNLPhrase(phrase) {
     }
 }
 
+/*
+Deprecated
+*/
 function getTopic(phrase) {
 
     var ph_units = phrase.split(' ');
     winston.info(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
-    
+
     var result = 3;
-    if (ph_units.filter((ele)=>{
-        if (model_make_and_name_con.indexOf(ele) === -1)
-            return false;
-        return true;
-    }).length > 0)
+    if (ph_units.filter((ele) => {
+            if (model_make_and_name_con.indexOf(ele) === -1)
+                return false;
+            return true;
+        }).length > 0)
         result = 0;
 
     return result; // 0 - Cars, // 3 anything else
 }
+
+
 /*
-function getTopic(phrase) {
-
-    var ph_units = phrase.split(' ');
-    winston.info(`nlp::analizeNLPhrase:: ph_units is: ${ph_units}`);
-    
-    var result = 3;
-    if (ph_units.filter((ele)=>{
-        return model_make_and_name_con.includes(ele);
-    }).length > 0)
-        result = 0;
-
-    return result; // 0 - Cars, // 3 anything else
+This functions should get nl phrase (probably enter by end user), or URL and return Promise as follow: 
+{
+    id: 3 = Phrase 
+        4 - URL
+    searchablePhrases: [] = list of extracted entities.
 }
 */
-
 function analizeGeneralPhrase(phrase) {
 
-    return {
-        id:3
-    }
+    return new Promise((resolve, reject) => {
+
+        var result = {
+            id: 3,
+            searchablePhrases: []
+        }
+
+        Promise.resolve()
+            .then(() => {
+                if (phrase.startsWith('http') || phrase.startsWith('www') || phrase.indexOf('.co') !== -1) {
+                    result.id = 4;
+                    return scraper.getHeadLine(phrase);
+                }
+                    
+                else return Promise.resolve(phrase)
+
+            })
+            .then((resp)=>{
+            
+                result.searchablePhrases = compromise(resp.toLowerCase()).topics().data().map((ele) => {return ele.normal}); //list Of Named Entities. Gets people,places and organizations.
+            
+                if ( result.searchablePhrases.length === 0 )
+                    result.searchablePhrases = compromise(resp.toLowerCase()).nouns().data().map((ele) => {return ele.singular});
+                
+                resolve(result);
+                
+            })
+    })
+
 }
 
 function analizeCarPhrase(text) {
@@ -91,7 +130,7 @@ function analizeCarPhrase(text) {
     car.model_year = trimAndReturnModelYear(text_units);
 
     car.model_name = trimAndReturnModelName(text_units);
-    
+
     if (car.model_make && car.model_name && car.model_year)
         car.id = 0;
     else if (car.model_make && car.model_name)

@@ -23,8 +23,6 @@ var performanceLogger = new(winston.Logger)({
     ]
 });
 
-//function generate(phrase , new_folder) {
-
 function generate(video) {
 
     var timeLogger_generate = performanceLogger.startTimer();
@@ -40,54 +38,122 @@ function generate(video) {
 
         Promise.resolve()
             .then(res =>
+                  
                 nlp.analizeNLPhrase(video.metadata.phrase))
+        
             .then(topic => {
                 /***************************************
                  *
-                 * topic.id: 0 - car, model make+name+year
-                 *           1 - car, model make+name
-                 *           2 - car, model make  (manufacture)
-                 *           3 - anything else
+                 *  topic.id: 0 - car, model make+name+year //Custom
+                 *            1 - car, model make+name      //Phrase
+                 *            2 - car, model make  (manufacture) //Phrase
+                 *            3 - anything else //Phrase
+                 *            4 - URL
+                 *
+                 *  topic.searchablePhrases: [] //only for URL
                  ****************************************/
                 if (topic.id === 0) return customCarScenario(topic);
+                else if (topic.id === 1 || topic.id === 2 || topic.id === 3) {
+                    
+                    /******************************************************
+                    *
+                    *    --------->   Phrase   <--------------
+                    *
+                    ******************************************************/                    
+                    video.metadata.determinedTopic = topic.searchablePhrases[0];
 
-                //topic.id === 1 || topic.id === 2 || topic.id === 3
-                return new Promise((resolve, reject) => {
+                    return new Promise((resolve, reject) => {
 
-                    var sentences;
+                        var sentences;
 
-                    winston.info(`automatic::generate:: topic.id ${topic.id}`);
+                        winston.info(`automatic::generate:: topic.id ${topic.id}`);
 
-                    scraper
-                        .getSentences(video.metadata.phrase, configuration.VIDEO.SENTENCE_COUNT)
+                        scraper
+                            .getSentences2(video.metadata.determinedTopic, configuration.VIDEO.SENTENCE_COUNT)
 
-                    .then((result) => {
+                        .then((result) => {
 
-                            sentences = result;
-                            winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
+                                sentences = result.data;
+                                video.metadata.determinedTopic = result.determinedTopic;
+                                winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
 
-                            return scraper.scrapeImages(video.metadata.phrase, sentences.length, video.info.tempFolder, sentences.map((obj, index) => index));
-                        })
-                        .then((files) => {
-                            //                                return createDataObjectGeneral(files, sentences, workshop);
-                            return createInfo_General(files, sentences, video);
-                        })
-                        .then((video) => {
-                            timeLogger_generate.done("automatic.generate");
+                                return scraper.scrapeImages(video.metadata.determinedTopic, sentences.length, video.info.tempFolder, sentences.map((obj, index) => index));
+                            })
+                            .then((files) => {
 
-                            return ffmpeg.createCustom(video);
+                                return createInfo_General(files, sentences, video);
+                            })
+                            .then((video) => {
+                                timeLogger_generate.done("automatic.generate");
 
-                        })
-                        .then((video) => {
-                           
-                            db.Video.update(video);
-                            resolve(video)
-                        })
-                        .catch((err) => {
-                            winston.info(err);
-                            reject(err);
-                        });
-                });
+                                return ffmpeg.createCustom(video);
+
+                            })
+                            .then((video) => {
+
+                                db.Video.update(video);
+                                resolve(video)
+                            })
+                            .catch((err) => {
+                                winston.info(err);
+                                reject(err);
+                            });
+                    });
+                } else {
+                    
+                    /******************************************************
+                    *
+                    *    --------->   URL   <--------------
+                    *
+                    ******************************************************/
+                    
+                    
+                    video.metadata.determinedTopic = topic.searchablePhrases[0];
+                    video.metadata.url = video.metadata.phrase;
+
+                    return new Promise((resolve, reject) => {
+
+                        var sentences;
+
+                        winston.info(`automatic::generate:: topic.id ${topic.id}`);
+
+                        //                        scraper
+                        //                            .getSentences(video.metadata.phrase, configuration.VIDEO.SENTENCE_COUNT)
+                        scraper
+                            .getSentences3(video.metadata.url, video.metadata.determinedTopic, configuration.VIDEO.SENTENCE_COUNT)
+
+                        .then((result) => {
+
+                                sentences = result.data;
+                                video.metadata.determinedTopic = result.determinedTopic;
+                                winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
+
+                                return scraper.scrapeImages(video.metadata.determinedTopic, sentences.length, video.info.tempFolder, sentences.map((obj, index) => index));
+                            
+                            })
+                            .then((files) => {
+                                console.log('\n\n automatic::scrapeImages response is:' + util.inspect(files) + '\n\n')
+
+                                return createInfo_General(files, sentences, video);
+                            })
+                            .then((video) => {
+                                timeLogger_generate.done("automatic.generate");
+
+                                return ffmpeg.createCustom(video);
+
+                            })
+                            .then((video) => {
+
+                                db.Video.update(video);
+                                resolve(video)
+                            })
+                            .catch((err) => {
+                                winston.info(err);
+                                reject(err);
+                            });
+                    });
+                }
+
 
             })
             .then((res) => resolve(res));
@@ -205,20 +271,21 @@ function createInfo_General(files, sentences, video) {
 
             return {
                 type: 0,
-                fileName: files[index],
+                fileName: files[index].fileName,
+                fileURL: files[index].fileURL,
                 caption: {
                     text: sentence,
                     font: 'Open Sans',
                     fontsize: 72,
                     bold: true,
                     italic: false,
-                    effect: 3,
+                    effect: 4,
                     //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
                     startTime: 0,
                     duration: 4 //Doesn't matter when tts is true! Or when effect=1 (Sliding from left)
                 },
                 tts: {
-                    enable: true
+                    enable: false
                 },
                 zoom: {
                     enabled: true,
