@@ -17,7 +17,7 @@
             <li>Request Date: {{video.metadata.timeCreated}}</li>
             <li>Status: {{getVideoStatus()}}</li>
         </ul>
-        <md-button ng-click="takeToStudio()" class="md-accent">Take to Studio</md-button>
+        <md-button ng-click="takeToStudio($index)" class="md-accent">Take to Studio</md-button>
 
     </md-dialog-content>
 </md-dialog>

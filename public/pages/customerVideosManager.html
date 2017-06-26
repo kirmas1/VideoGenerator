@@ -1,0 +1,42 @@
+<div>
+    Here you can see your own videos.
+</div>
+<!--
+<md-card ng-repeat="video in videoHistoryList">
+    <md-card-title>
+        <md-card-title-text layout="row" layout-align="center center">
+            <span class="md-headline md-accent">{{video.videoName}}</span>
+                        <span class="md-subhead">{{video.metadata.M.timeCreated.S}}</span>
+        </md-card-title-text>
+    </md-card-title>
+    <md-progress-circular ng-hide="!video.inProgress" class="md-accent" md-diameter="40"></md-progress-circular>
+    <md-card-actions layout="row" layout-align="end center">
+        <md-button ng-click="showDetails($event, $index)" class="md-accent">Details</md-button>
+        <md-button ng-click="playVideo($event, $index)" ng-disabled="video.inProgress" class="md-accent">Watch</md-button>
+    </md-card-actions>
+
+</md-card>-->
+<div class="container">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Video Name</th>
+                    <th>Request Date</th>
+                    <th>Video Encoding Duration</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="video in videoHistoryList">
+                    <td style="vertical-align : middle;">{{video.videoName}}</td>
+                    <td style="vertical-align : middle;">{{video.metadata.timeCreated}}</td>
+                    <td style="vertical-align : middle;">{{video.metadata.ffmpegProcessDuration}}</td>
+                    <td style="vertical-align : middle;">{{getVideoStatus($index)}}</td>
+                    <td><md-button ng-click="playVideo($event, $index)" ng-disabled="video.inProgress" class="md-accent">Watch</md-button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -41,16 +41,8 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             .state('manual', {
                 abstract: true,
                 url: '/manual',
-                views: {
-                    '': {
-                        templateUrl: 'pages/manual.html',
-                        controller: 'manualCtrl'
-                    },
-                    'videosHistory@': {
-                        templateUrl: 'pages/videosHistory.html',
-                        controller: 'videosHistoryCtrl'
-                    }
-                }
+                templateUrl: 'pages/manual.html',
+                controller: 'manualCtrl'
             })
             .state('manual.instructions', {
                 url: '',
@@ -68,35 +60,56 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             })
             .state('automatic', {
                 url: '/automatic',
-                views: {
-                    '': {
-                        templateUrl: 'pages/automatic.html',
-                        controller: 'automaticCtrl'
-                    },
-                    'videosHistory@': {
-                        templateUrl: 'pages/videosHistory.html',
-                        controller: 'videosHistoryCtrl'
-                    }
-                }
+                templateUrl: 'pages/automatic.html',
+                controller: 'automaticCtrl'
+            })
+            .state('videos', {
+                url: '/videos',
+                templateUrl: 'pages/customerVideosManager.html',
+                controller: 'customerVideosManagerCtrl'
+            })
+            .state('home', {
+                url: '/dashboard',
+                templateUrl: 'pages/dashboard.html',
+                controller: 'dashboardManagerCtrl'
             })
   }]);
 
-myApp.controller('sideNavCtrl', ['$scope', '$mdSidenav', function ($scope, $mdSidenav) {
+myApp.controller('dashboardManagerCtrl', ['$scope', '$rootScope', '$state', '$mdSidenav', function ($scope, $rootScope, $state, $mdSidenav) {
+
+}]);
+
+myApp.controller('sideNavCtrl', ['$scope', '$rootScope', '$state', '$mdSidenav', function ($scope, $rootScope, $state, $mdSidenav) {
 
     $scope.closeSideNav = function () {
         $mdSidenav('left').close();
+    }
+
+    $scope.goToMyVideos = function () {
+        $rootScope.$broadcast('hideTabs');
+        $state.go('videos');
+    }
+    $scope.goToAutomatic = function () {
+        $rootScope.$broadcast('goToAutomatic');
+    }
+    $scope.goToStudio = function () {
+        $rootScope.$broadcast('goToStudio');
+    }
+    $scope.goToHome = function () {
+        $rootScope.$broadcast('goToHome');
     }
 
 }]);
 
 myApp.controller('toolBarCtrl', ['$scope', '$mdSidenav', function ($scope, $mdSidenav) {
 
-    console.log('-------------toolBarCTRL---------------');
+    $scope.testtt = function () {
+        console.log('tessstttttttt');
+    }
     $scope.toggleLeft = buildToggler('left');
     $scope.toggleRight = buildToggler('right');
 
     function buildToggler(componentId) {
-        console.log('-------------buildToggler---------------');
 
         return function () {
             $mdSidenav(componentId).toggle();
@@ -107,23 +120,53 @@ myApp.controller('toolBarCtrl', ['$scope', '$mdSidenav', function ($scope, $mdSi
 
 myApp.controller('mainNavCtrl', ['$scope', '$state', 'videoService', function ($scope, $state, videoService) {
 
+    $scope.showTabNav = true;
+
     $scope.currentNavItem = 'Automatic';
 
     $scope.$on('videosHistoryCtrl.takeToStudio', function (event, args) {
         $scope._goto(args.state);
     });
 
+    $scope.$on('goToStudio', function (event, args) {
+        $scope.showTabNav = true;
+        $scope._goto('manual.instructions');
+    });
+
+    $scope.$on('goToAutomatic', function (event, args) {
+        $scope.showTabNav = true;
+        $scope._goto('automatic');
+    });
+
+    $scope.$on('goToHome', function (event, args) {
+        $scope.showTabNav = true;
+        $scope._goto('home');
+    });
+
+    $scope.$on('hideTabs', function (event, args) {
+        $scope.showTabNav = false;
+    });
+
     $scope._goto = function (state) {
 
-        console.log('mainNavCtrl acitve');
-
-        $scope.currentNavItem = state === 'automatic' ? 'Automatic' : 'Manual';
+        switch (state) {
+            case 'automatic':
+                $scope.currentNavItem = 'Automatic';
+                break;
+            case 'manual.instructions':
+                $scope.currentNavItem = 'Manual';
+                break;
+            case 'home':
+                $scope.currentNavItem = 'Home';
+                break;
+        }
+        //$scope.currentNavItem = state === 'automatic' ? 'Automatic' : 'Manual';
         $state.go(state);
     }
 
 }]);
 
-myApp.controller('videosHistoryCtrl', ['$scope', '$rootScope', '$state', '$mdDialog', 'videoService', function ($scope, $rootScope, $state, $mdDialog, videoService) {
+myApp.controller('customerVideosManagerCtrl', ['$scope', '$rootScope', '$state', '$mdDialog', 'videoService', function ($scope, $rootScope, $state, $mdDialog, videoService) {
 
     $scope.videoHistoryList = [];
 
@@ -159,6 +202,19 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$rootScope', '$state', '$mdDia
         })
     };
 
+    $scope.getVideoStatus = function (index) {
+        
+        console.log(`getVideoStatus, index = ${index}`);
+        console.log(`$scope.videoHistoryList[index] = ${$scope.videoHistoryList[index]}`);
+        var statusMap = {
+            '-1': 'Request approved',
+            '0': 'Proccessing',
+            '1': 'Ready',
+            '2': 'Failed'
+        };
+        return statusMap[$scope.videoHistoryList[index].metadata.state];
+    }
+
     function detailsDialogController($scope, $mdDialog) {
         $scope.video = videoService.getVideoByIndex($mdDialog.index);
 
@@ -173,13 +229,10 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$rootScope', '$state', '$mdDia
         }
 
         $scope.takeToStudio = function () {
+
             videoService.loadVideoDetailsToStudio($mdDialog.index);
 
-            console.log(`detailsDialogController::takeToStudio `);
-
-            $rootScope.$broadcast('videosHistoryCtrl.takeToStudio', {
-                state: 'manual.instructions'
-            });
+            $rootScope.$broadcast('goToStudio');
 
             $mdDialog.hide();
 
