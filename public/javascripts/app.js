@@ -81,6 +81,30 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             })
   }]);
 
+myApp.controller('sideNavCtrl', ['$scope', '$mdSidenav', function ($scope, $mdSidenav) {
+
+    $scope.closeSideNav = function () {
+        $mdSidenav('left').close();
+    }
+
+}]);
+
+myApp.controller('toolBarCtrl', ['$scope', '$mdSidenav', function ($scope, $mdSidenav) {
+
+    console.log('-------------toolBarCTRL---------------');
+    $scope.toggleLeft = buildToggler('left');
+    $scope.toggleRight = buildToggler('right');
+
+    function buildToggler(componentId) {
+        console.log('-------------buildToggler---------------');
+
+        return function () {
+            $mdSidenav(componentId).toggle();
+        };
+    }
+
+}]);
+
 myApp.controller('mainNavCtrl', ['$scope', '$state', 'videoService', function ($scope, $state, videoService) {
 
     $scope.currentNavItem = 'Automatic';
@@ -90,9 +114,9 @@ myApp.controller('mainNavCtrl', ['$scope', '$state', 'videoService', function ($
     });
 
     $scope._goto = function (state) {
-        
+
         console.log('mainNavCtrl acitve');
-        
+
         $scope.currentNavItem = state === 'automatic' ? 'Automatic' : 'Manual';
         $state.go(state);
     }
@@ -150,9 +174,9 @@ myApp.controller('videosHistoryCtrl', ['$scope', '$rootScope', '$state', '$mdDia
 
         $scope.takeToStudio = function () {
             videoService.loadVideoDetailsToStudio($mdDialog.index);
- 
+
             console.log(`detailsDialogController::takeToStudio `);
-            
+
             $rootScope.$broadcast('videosHistoryCtrl.takeToStudio', {
                 state: 'manual.instructions'
             });

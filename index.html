@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Video Automation</title>
+    <title>sunsa</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
     <link href="css/styles.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -23,23 +24,85 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.2/socket.io.slim.js"></script>
 </head>
 
-<body layout="column" ng-app="videoAutomation">
-    <md-content layout="column" flex ng-controller="mainNavCtrl">
-        
-        <md-nav-bar md-selected-nav-item="currentNavItem" nav-bar-aria-label="navigation links">
-            <md-nav-item md-nav-click="_goto('automatic')" name="Automatic">
-                Automatic
-            </md-nav-item>
-            <md-nav-item class="md-warn" md-nav-click="_goto('manual.instructions')" name="Manual">
-                Studio
-            </md-nav-item>
-        </md-nav-bar>
+<body layout="row" ng-app="videoAutomation">
 
-        <div layout="column" flex="90" ui-view class="ext-content slide">
-        </div>
-    </md-content>
+    <md-sidenav class="md-sidenav-left" md-component-id="left" md-whiteframe="4">
+        <md-content ng-controller="sideNavCtrl">
+            <md-toolbar class="md-theme-indigo">
+                <div class="md-toolbar-tools">
+                    <md-button aria-label="Open menu with custom trigger" class="md-icon-button" ng-click="closeSideNav()">
+                        <i class="material-icons">menu</i>
+                    </md-button>
+                    <h2 md-truncate flex><i>sunsa.pro</i></h2>
+                </div>
+            </md-toolbar>
+            <md-list>
+                <md-list-item>
+                    FILE
+                </md-list-item>
+                <md-divider></md-divider>
+                <md-list-item>
+                    VIDEOS
+                </md-list-item>
+                <md-divider></md-divider>
+                <md-list-item>
+                    TEAM
+                </md-list-item>
+                <md-divider></md-divider>
+                <md-list-item>
+                    ANALIZE
+                </md-list-item>
+                <md-divider></md-divider>
+                <md-list-item>
+                    SETTINGS
+                </md-list-item>
+                <md-divider></md-divider>
+                <md-list-item>
+                    HELP
+                </md-list-item>
+            </md-list>
+        </md-content>
+    </md-sidenav>
 
-    <div flex="15" ui-view="videosHistory" layout="row">Video History Goes here</div>
+    <div layout="column" flex>
+        <md-toolbar ng-controller="toolBarCtrl">
+            <div class="md-toolbar-tools">
+                <md-button aria-label="Open menu with custom trigger" class="md-icon-button" ng-click="toggleLeft()">
+                    <i class="material-icons">menu</i>
+                </md-button>
+                <h2 md-truncate flex><i>sunsa.pro</i></h2>
+                <md-button aria-label="Open menu with custom trigger" class="md-icon-button" ng-ng-click="test()">
+                    <i class="material-icons">notifications</i>
+                </md-button>
+                <md-button aria-label="Open menu with custom trigger" class="md-icon-button" ng-mouseenter="$mdMenu.open()">
+                    <i class="material-icons">account_circle</i>
+                </md-button>
+            </div>
+
+        </md-toolbar>
+        <md-content layout="column" flex ng-controller="mainNavCtrl">
+            <div layout="row" layout-align="center">
+                <md-nav-bar md-selected-nav-item="currentNavItem" nav-bar-aria-label="navigation links">
+                    <div layout="row" layout-align="center">
+                        <md-nav-item md-nav-click="_goto('automatic')" name="Home">
+                            Home
+                        </md-nav-item>
+                        <md-nav-item md-nav-click="_goto('automatic')" name="Automatic">
+                            Automatic
+                        </md-nav-item>
+                        <md-nav-item class="md-warn" md-nav-click="_goto('manual.instructions')" name="Manual">
+                            Studio
+                        </md-nav-item>
+                    </div>
+                </md-nav-bar>
+            </div>
+            <md-divider></md-divider>
+
+            <div layout="column" flex="90" ui-view class="ext-content slide">
+            </div>
+        </md-content>
+    </div>
+    <!--    <div flex="15" ui-view="videosHistory" layout="row">Video History Goes here</div>-->
 </body>
 
 </html>
