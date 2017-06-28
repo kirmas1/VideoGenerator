@@ -88,7 +88,7 @@ app.post('/manualgen', function (req, res) {
     form.on('end', function () {
 
         video.info.tempFolder = newFolderName;
-        
+ 
         db.Video.newVideo(video)
             .then((newVideo) => {
 

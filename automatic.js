@@ -38,10 +38,10 @@ function generate(video) {
 
         Promise.resolve()
             .then(res =>
-                  
+
                 nlp.analizeNLPhrase(video.metadata.phrase))
-        
-            .then(topic => {
+
+        .then(topic => {
                 /***************************************
                  *
                  *  topic.id: 0 - car, model make+name+year //Custom
@@ -55,18 +55,17 @@ function generate(video) {
                 if (topic.id === 0) {
                     video.metadata.origin = 1;
                     return customCarScenario(topic);
-                }
-                else if (topic.id === 1 || topic.id === 2 || topic.id === 3) {
-                    
+                } else if (topic.id === 1 || topic.id === 2 || topic.id === 3) {
+
                     /******************************************************
-                    *
-                    *    --------->   Phrase   <--------------
-                    *
-                    ******************************************************/                    
+                     *
+                     *    --------->   Phrase   <--------------
+                     *
+                     ******************************************************/
                     video.metadata.origin = 1;
                     video.metadata.determinedTopic = video.metadata.phrase; //Taking the full phrase as the topic of the clip. if misspell getSentences will fix.
-                    
-//                    video.metadata.determinedTopic = topic.searchablePhrases[0];
+
+                    //                    video.metadata.determinedTopic = topic.searchablePhrases[0];
 
                     return new Promise((resolve, reject) => {
 
@@ -106,13 +105,13 @@ function generate(video) {
                             });
                     });
                 } else {
-                    
+
                     /******************************************************
-                    *
-                    *    --------->   URL   <--------------
-                    *
-                    ******************************************************/
-                    
+                     *
+                     *    --------->   URL   <--------------
+                     *
+                     ******************************************************/
+
                     video.metadata.origin = 2;
                     video.metadata.determinedTopic = topic.searchablePhrases[0];
                     video.metadata.url = video.metadata.phrase;
@@ -135,7 +134,7 @@ function generate(video) {
                                 winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
 
                                 return scraper.scrapeImages(video.metadata.determinedTopic, sentences.length, video.info.tempFolder, sentences.map((obj, index) => index));
-                            
+
                             })
                             .then((files) => {
                                 console.log('\n\n automatic::scrapeImages response is:' + util.inspect(files) + '\n\n')
@@ -272,15 +271,15 @@ function createInfo_General(files, sentences, video) {
     return new Promise((resolve, reject) => {
 
         var slidesInfo = [];
-
-        var slides = sentences.map((sentence, index) => {
-
-            return {
+        var itr = 0;
+        var slides = [];
+        for (; itr < sentences.length; itr++) {
+            slides.push({
                 type: 0,
-                fileName: files[index].fileName,
-                fileURL: files[index].fileURL,
+                fileName: files[itr].fileName,
+                fileURL: files[itr].fileURL,
                 caption: {
-                    text: sentence,
+                    text: sentences[itr],
                     font: 'Open Sans',
                     fontsize: 72,
                     bold: true,
@@ -295,23 +294,61 @@ function createInfo_General(files, sentences, video) {
                 },
                 zoom: {
                     enabled: true,
-                    style: 2
+                    style: itr
                 },
                 duration: Math.floor(8)
-            };
-        })
+            })
+        }
+        //        var slides = sentences.map((sentence, index) => {
+        //
+        //            return {
+        //                type: 0,
+        //                fileName: files[index].fileName,
+        //                fileURL: files[index].fileURL,
+        //                caption: {
+        //                    text: sentence,
+        //                    font: 'Open Sans',
+        //                    fontsize: 72,
+        //                    bold: true,
+        //                    italic: false,
+        //                    effect: 4,
+        //                    //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
+        //                    startTime: 0,
+        //                    duration: 4 //Doesn't matter when tts is true! Or when effect=1 (Sliding from left)
+        //                },
+        //                tts: {
+        //                    enable: false
+        //                },
+        //                zoom: {
+        //                    enabled: true,
+        //                    style: 2
+        //                },
+        //                duration: Math.floor(8)
+        //            };
+        //        })
 
-        var transitions = sentences.map((ele, index) => {
-
-            return {
+        var transitions = [];
+        for (itr = 0; itr < sentences.length; itr++) {
+            transitions.push({
                 type: 1,
                 duration: 2,
                 effect: {
                     type: 1,
-                    uncover: 1
+                    uncover: itr+1
                 }
-            };
-        })
+            })
+        }
+        //        var transitions = sentences.map((ele, index) => {
+        //
+        //            return {
+        //                type: 1,
+        //                duration: 2,
+        //                effect: {
+        //                    type: 1,
+        //                    uncover: 1
+        //                }
+        //            };
+        //        })
 
         slides.forEach((ele, index) => {
 

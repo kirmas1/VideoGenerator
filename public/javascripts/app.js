@@ -325,7 +325,7 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
 myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
 
     $scope.selectedIndex = null;
-    
+
     $scope.video = videoService.manualVideo;
     var uploadClicks = 0;
     $scope.slides = videoService.getSlides();
@@ -482,6 +482,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
                 break;
             }
         }
+        $rootScope.$digest();
     });
 
 
@@ -557,7 +558,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
                             startTime: 0,
                             duration: 0
                         },
-                        tts:{
+                        tts: {
                             enable: false
                         },
                         thumbnail: this.result,
@@ -663,6 +664,11 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
                     historyList.push(jsonResponse);
 
                     $rootScope.$digest();
+
+                    $rootScope.$broadcast('hideTabs');
+                    $state.go('videos');
+                } else {
+                    //TODO - Prompt error
                 }
             };
             xhr.open("GET", `/autogen/?q=${phrase}`, true);
@@ -684,7 +690,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
 
         for (let i = 0; i < video.slides.length; i++) {
             if (i % 2 == 0)
-                slidesClean.push(_.pick(video.slides[i], ['type', 'fileName', 'caption', 'zoom', 'duration','tts']));
+                slidesClean.push(_.pick(video.slides[i], ['type', 'fileName', 'caption', 'zoom', 'duration', 'tts']));
             else
                 slidesClean.push(_.pick(video.slides[i], ['type', 'effect', 'duration']));
         }
@@ -729,17 +735,22 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
         xhr.onreadystatechange = function () {
 
             if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                console.log('-----mmmmm------client2');
                 historyList[m_index].link = xhr.responseText;
                 historyList[m_index].inProgress = false;
                 $rootScope.$digest();
                 console.log("xhr.responseText is: " + xhr.responseText);
+                
+                console.log('------00000-----');
+                $rootScope.$broadcast('hideTabs');
+                $state.go('videos');
+            } else {
+                //TODO Prompt erroe
             }
         };
 
         xhr.open("POST", "/manualgen", true);
         xhr.send(formData);
-        console.log('-----mmmmm------client1');
+
 
     }
 
