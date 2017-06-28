@@ -203,7 +203,7 @@ myApp.controller('customerVideosManagerCtrl', ['$scope', '$rootScope', '$state',
     };
 
     $scope.getVideoStatus = function (index) {
-        
+
         console.log(`getVideoStatus, index = ${index}`);
         console.log(`$scope.videoHistoryList[index] = ${$scope.videoHistoryList[index]}`);
         var statusMap = {
@@ -325,7 +325,8 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
 myApp.controller('manualCtrl', ['$scope', '$state', '$timeout', '$mdDialog', 'videoService', function ($scope, $state, $timeout, $mdDialog, videoService) {
 
     $scope.selectedIndex = null;
-
+    
+    $scope.video = videoService.manualVideo;
     var uploadClicks = 0;
     $scope.slides = videoService.getSlides();
 
@@ -486,7 +487,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
 
     var video = {
         files: [],
-        name: 'Video Name here',
+        name: null,
         slides: [] //slides includes transitions
     };
 
@@ -555,6 +556,9 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
                             effect: 0, // 0 - None, 1 - Sliding Right, 2 - FadeInOit
                             startTime: 0,
                             duration: 0
+                        },
+                        tts:{
+                            enable: false
                         },
                         thumbnail: this.result,
                         zoom: {
@@ -630,39 +634,43 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
     }
 
     var formatDate = function (date) {
-        var monthNames = [
+            var monthNames = [
     "January", "February", "March",
     "April", "May", "June", "July",
     "August", "September", "October",
     "November", "December"
         ];
 
-        var day = date.getDate();
-        var monthIndex = date.getMonth();
-        var year = date.getFullYear();
+            var day = date.getDate();
+            var monthIndex = date.getMonth();
+            var year = date.getFullYear();
 
-        return day + ' ' + monthNames[monthIndex] + ' ' + year;
-    }
-
+            return day + ' ' + monthNames[monthIndex] + ' ' + year;
+        }
+        /*
+        Called from automatic
+        */
     var generateAutomaticVideo = function (phrase) {
-        console.log('videoService::generateAutomaticVideo:: phrase = ' + phrase);
+            console.log('videoService::generateAutomaticVideo:: phrase = ' + phrase);
 
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function () {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
 
-            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
 
-                var jsonResponse = JSON.parse(xhr.responseText);
+                    var jsonResponse = JSON.parse(xhr.responseText);
 
-                historyList.push(jsonResponse);
+                    historyList.push(jsonResponse);
 
-                $rootScope.$digest();
-            }
-        };
-        xhr.open("GET", `/autogen/?q=${phrase}`, true);
-        xhr.send();
-    }
-
+                    $rootScope.$digest();
+                }
+            };
+            xhr.open("GET", `/autogen/?q=${phrase}`, true);
+            xhr.send();
+        }
+        /*
+        Called from studio
+        */
     var generateVideo = function () {
 
         var m_index = historyList.push({
@@ -676,14 +684,38 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
 
         for (let i = 0; i < video.slides.length; i++) {
             if (i % 2 == 0)
-                slidesClean.push(_.pick(video.slides[i], ['type', 'fileName', 'caption', 'zoom', 'duration']));
+                slidesClean.push(_.pick(video.slides[i], ['type', 'fileName', 'caption', 'zoom', 'duration','tts']));
             else
                 slidesClean.push(_.pick(video.slides[i], ['type', 'effect', 'duration']));
         }
 
+        //        var dataToBackEnd = {
+        //            videoName: video.name,
+        //            slidesInfo: slidesClean
+        //        };
         var dataToBackEnd = {
+            clientName: 'Sagi',
             videoName: video.name,
-            slidesInfo: slidesClean
+            metadata: {
+                origin: 0, // 0 - manual(studio), 1 - phrase, 2 - URL
+                phrase: null,
+                determinedTopic: null, //the extracted topic from phrase or URL
+                url: null,
+                name: video.name,
+                timeCreated: (new Date()).toString(), //The request
+                ffmpegProcessDuration: null,
+                link: null, //link to final video
+                state: -1, // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
+                inProgress: false
+            },
+            info: {
+                tempFolder: null,
+                audio: {
+                    enable: true,
+                    file_path: 'assets/bg_music_0.mp3'
+                },
+                slidesInfo: slidesClean
+            }
         };
 
         var formData = new FormData();
@@ -705,7 +737,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
             }
         };
 
-        xhr.open("POST", "/test", true);
+        xhr.open("POST", "/manualgen", true);
         xhr.send(formData);
         console.log('-----mmmmm------client1');
 
@@ -715,6 +747,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
         uploadEvenet: uploadEvenet,
         getSlides: getSlides,
         getSlide: getSlide,
+        manualVideo: video,
         clearSlidesList: clearSlidesList,
         generateVideo: generateVideo,
         generateAutomaticVideo: generateAutomaticVideo,

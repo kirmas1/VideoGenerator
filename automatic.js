@@ -52,7 +52,10 @@ function generate(video) {
                  *
                  *  topic.searchablePhrases: [] //only for URL
                  ****************************************/
-                if (topic.id === 0) return customCarScenario(topic);
+                if (topic.id === 0) {
+                    video.metadata.origin = 1;
+                    return customCarScenario(topic);
+                }
                 else if (topic.id === 1 || topic.id === 2 || topic.id === 3) {
                     
                     /******************************************************
@@ -60,7 +63,10 @@ function generate(video) {
                     *    --------->   Phrase   <--------------
                     *
                     ******************************************************/                    
-                    video.metadata.determinedTopic = topic.searchablePhrases[0];
+                    video.metadata.origin = 1;
+                    video.metadata.determinedTopic = video.metadata.phrase; //Taking the full phrase as the topic of the clip. if misspell getSentences will fix.
+                    
+//                    video.metadata.determinedTopic = topic.searchablePhrases[0];
 
                     return new Promise((resolve, reject) => {
 
@@ -107,7 +113,7 @@ function generate(video) {
                     *
                     ******************************************************/
                     
-                    
+                    video.metadata.origin = 2;
                     video.metadata.determinedTopic = topic.searchablePhrases[0];
                     video.metadata.url = video.metadata.phrase;
 

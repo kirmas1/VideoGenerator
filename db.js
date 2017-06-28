@@ -22,6 +22,24 @@ var formatDate = function (date) {
 
 module.exports = {
     Video: {
+        newVideo: function (video) {
+            winston.info(`db::newVideo::`);
+
+            return new Promise((resolve, reject) => {
+                
+                if (!video.videoName) {
+                    video.videoName = video.info.tempFolder;
+                    video.metadata.name = video.info.tempFolder;
+                }
+                videoTable.putItem(video, {
+                        ReturnValues: "ALL_OLD"
+                    })
+                    .then((resp) => {
+                        resolve(video);
+                    })
+            });
+
+        },
         newByPhrase: function (input_phrase) {
 
             winston.info(`db::newByPhrase:: phrase = ${input_phrase}`);
@@ -30,7 +48,7 @@ module.exports = {
                 clientName: 'Sagi',
                 videoName: input_phrase,
                 metadata: {
-                    origin: 1,
+                    origin: null,
                     phrase: input_phrase,
                     determinedTopic: null,
                     url: null,
@@ -49,7 +67,7 @@ module.exports = {
                     slidesInfo: []
                 }
             };
-            
+
             return new Promise((resolve, reject) => {
                 videoTable.putItem(newItem, {
                         ReturnValues: "ALL_OLD"
@@ -71,7 +89,7 @@ module.exports = {
                     },
                     ExpressionAttributeValues: {
                         ":a": "Sagi"
-                        
+
                     },
                     KeyConditionExpression: "#clientName = :a",
                     TableName: "Videos"
@@ -82,7 +100,7 @@ module.exports = {
                         winston.info(`db.res.video.getAll err = ${err}, err.stack = ${err.stack}`);
                         reject(err);
                     } else {
-//                        winston.info(`db::getAll, data.Items = ${util.inspect(data.Items[0].metadata.M)}`)
+                        //                        winston.info(`db::getAll, data.Items = ${util.inspect(data.Items[0].metadata.M)}`)
                         resolve(data.Items)
                     };
                 });

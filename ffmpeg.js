@@ -40,7 +40,7 @@ var me = function () {
         var timeLogger_createCustom = performanceLogger.startTimer();
         var newFolderName = video.info.tempFolder.substr(video.info.tempFolder.lastIndexOf('/') + 1);
 
-        winston.info('Let\'s start create cusstom!');
+        winston.info('ffmpeg::Let\'s start create cusstom!');
 
         var workshop = configuration.OS == 'linux' ? `./workshop/${newFolderName}` : `workshop/${newFolderName}`;
 
