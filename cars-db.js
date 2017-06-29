@@ -61,7 +61,9 @@ module.exports = (function () {
         }
         */
     var getCarPictures = function (car, options) {
+        
         winston.info('cars-db:: db.getCarPictures');
+        
         return new Promise((resolve, reject) => {
 
             var model_name = car.model_name.replace(' ', '+');
@@ -72,7 +74,9 @@ module.exports = (function () {
             }
 
             s3.listObjects(params, function (err, data) {
+                
                 winston.info('cars-db:: getCarPictures:: s3.listObjects:: data returned: ' + util.inspect(data));
+                
                 if (err) {
                     winston.info(err, err.stack); // an error occurred
                     reject(1);

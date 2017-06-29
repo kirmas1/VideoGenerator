@@ -5,7 +5,7 @@
                 <tr>
                     <th>Video Name</th>
                     <th>Request Date</th>
-                    <th>Video Encoding Duration</th>
+<!--                    <th>Video Encoding Duration</th>-->
                     <th>Status</th>
                     <th></th>
                 </tr>
@@ -14,9 +14,11 @@
                 <tr ng-repeat="video in videoHistoryList">
                     <td style="vertical-align : middle;">{{video.videoName}}</td>
                     <td style="vertical-align : middle;">{{video.metadata.timeCreated}}</td>
-                    <td style="vertical-align : middle;">{{video.metadata.ffmpegProcessDuration}}</td>
+<!--                    <td style="vertical-align : middle;">{{video.metadata.ffmpegProcessDuration}}</td>-->
                     <td style="vertical-align : middle;">{{getVideoStatus($index)}}</td>
-                    <td><md-button ng-click="playVideo($event, $index)" ng-disabled="video.inProgress" class="md-accent">Watch</md-button></td>
+                    <td layout="row" layout-align="center"><md-button ng-click="takeToStudio($index)" class="md-accent">Edit</md-button>
+                    <md-button ng-click="playVideo($event, $index)" ng-disabled="video.metadata.state!==1" class="md-accent">Watch</md-button></td>
+                    
                 </tr>
             </tbody>
         </table>

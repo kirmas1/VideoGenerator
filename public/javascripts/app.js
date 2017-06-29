@@ -101,10 +101,10 @@ myApp.controller('sideNavCtrl', ['$scope', '$rootScope', '$state', '$mdSidenav',
 
 }]);
 
-myApp.controller('toolBarCtrl', ['$scope', '$mdSidenav', function ($scope, $mdSidenav) {
+myApp.controller('toolBarCtrl', ['$rootScope', '$scope', '$mdSidenav', function ($rootScope, $scope, $mdSidenav) {
 
-    $scope.testtt = function () {
-        console.log('tessstttttttt');
+    $scope.goToHome = function () {
+        $rootScope.$broadcast('goToHome');
     }
     $scope.toggleLeft = buildToggler('left');
     $scope.toggleRight = buildToggler('right');
@@ -174,8 +174,15 @@ myApp.controller('customerVideosManagerCtrl', ['$scope', '$rootScope', '$state',
         .then((res) => {
             $scope.videoHistoryList = res;
             $scope.$digest();
-            //console.log('videosHistoryCtrl:: res is ' + res);
         });
+
+    $scope.takeToStudio = function (index) {
+
+        videoService.loadVideoDetailsToStudio(index);
+
+        $rootScope.$broadcast('goToStudio');
+
+    }
 
     $scope.playVideo = function (ev, index) {
 
@@ -190,6 +197,9 @@ myApp.controller('customerVideosManagerCtrl', ['$scope', '$rootScope', '$state',
         })
     };
 
+    /*
+    Deprecated
+    */
     $scope.showDetails = function (ev, index) {
 
         $mdDialog.index = index;
@@ -204,17 +214,17 @@ myApp.controller('customerVideosManagerCtrl', ['$scope', '$rootScope', '$state',
 
     $scope.getVideoStatus = function (index) {
 
-        console.log(`getVideoStatus, index = ${index}`);
-        console.log(`$scope.videoHistoryList[index] = ${$scope.videoHistoryList[index]}`);
-        var statusMap = {
-            '-1': 'Request approved',
-            '0': 'Proccessing',
-            '1': 'Ready',
-            '2': 'Failed'
-        };
-        return statusMap[$scope.videoHistoryList[index].metadata.state];
-    }
-
+            var statusMap = {
+                '-1': 'Request approved',
+                '0': 'Proccessing',
+                '1': 'Ready',
+                '2': 'Failed'
+            };
+            return statusMap[$scope.videoHistoryList[index].metadata.state];
+        }
+        /*
+        Deprecated
+        */
     function detailsDialogController($scope, $mdDialog) {
         $scope.video = videoService.getVideoByIndex($mdDialog.index);
 
@@ -708,7 +718,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
                 determinedTopic: null, //the extracted topic from phrase or URL
                 url: null,
                 name: video.name,
-                timeCreated: (new Date()).toString(), //The request
+                timeCreated: formatDate(new Date()), //The request
                 ffmpegProcessDuration: null,
                 link: null, //link to final video
                 state: -1, // -1 - Init, 0 - InProgress, 1 - Ready, 2 - Failed
@@ -739,7 +749,7 @@ myApp.factory('videoService', ['$rootScope', '$state', function ($rootScope, $st
                 historyList[m_index].inProgress = false;
                 $rootScope.$digest();
                 console.log("xhr.responseText is: " + xhr.responseText);
-                
+
                 console.log('------00000-----');
                 $rootScope.$broadcast('hideTabs');
                 $state.go('videos');

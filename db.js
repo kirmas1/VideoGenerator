@@ -52,7 +52,8 @@ module.exports = {
                     phrase: input_phrase,
                     determinedTopic: null,
                     url: null,
-                    timeCreated: (new Date()).toString(), //The request
+                    timeCreated:formatDate(new Date()),
+                    //timeCreated: (new Date()).toString(), //The request
                     ffmpegProcessDuration: null,
                     link: null,
                     state: -1,
