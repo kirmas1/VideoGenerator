@@ -185,7 +185,7 @@ function getSentences2(topic, n) {
 
         scrapeWiki(topic)
             .then((resp) => {
-
+                winston.info(`scraper::getSentences2::scrapeWiki resp = ${util.inspect(resp)}`);
                 result.status = resp.status;
                 result.determinedTopic = resp.determinedTopic;
                 if (result.status === 2) resolve(result);
@@ -294,6 +294,8 @@ Basically go for wiki main page and search the phrase then ..
 */
 function scrapeWiki(phrase) {
 
+    var suggest = null;
+    
     function a(phrase) {
 
         return new Promise((resolve, reject) => {
@@ -302,7 +304,7 @@ function scrapeWiki(phrase) {
                 status: null, // 0 - ok. 1 - try suggestion. 2 - failed and there is no suggestion
                 data: null
             };
-
+            
             osmosis
                 .get('https://en.wikipedia.org/wiki/Main_Page')
                 .submit(".//*[@id='searchButton']", {
@@ -310,16 +312,22 @@ function scrapeWiki(phrase) {
                 })
                 .set({
                     'followLinkInCaseOfMissMatch': [".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a"],
+                    'followLinkInCaseOfMissMatch1': [".//*[@id='mw-content-text']/div/ul/li[1]/div[1]/a"],
                     'first_ps': [`//p[position() < 3 and parent::div and ./b]`] //index starting from 1 (Xpath..)
                 })
                 .then(function (context, data, next, done) {
-
-                    //if (data.first_ps[0].indexOf('does not exist') !== -1)
                     if (data.first_ps.length === 0) {
-                        if (data.followLinkInCaseOfMissMatch.length === 0)
+                        if (data.followLinkInCaseOfMissMatch.length === 0 && data.followLinkInCaseOfMissMatch1.length === 0)
                             result.status = 2;
-                        else
+                        else if (data.followLinkInCaseOfMissMatch.length === 0) {
                             result.status = 1;
+                            suggest = ".//*[@id='mw-content-text']/div/ul/li[1]/div[1]/a";
+                            
+                        } else {
+                            result.status = 1;
+                            suggest = ".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a";
+                        }
+                            
                     } else {
                         result.status = 0;
                         result.data = data.first_ps[0];
@@ -333,6 +341,8 @@ function scrapeWiki(phrase) {
     }
 
     function b(phrase) {
+        
+        winston.info(`b option::suggest = ${suggest}`)
         return new Promise((resolve, reject) => {
             var result = {
                 data: null,
@@ -345,12 +355,12 @@ function scrapeWiki(phrase) {
                     search: phrase
                 })
                 .set({
-                    wikiSuggest: ".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a"
+                    wikiSuggest: [suggest]
                 })
                 .data(function (d) {
-                    result.determinedTopic = d.wikiSuggest;
+                    result.determinedTopic = d.wikiSuggest || d.wikiSuggest1;
                 })
-                .follow(".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a")
+                .follow(suggest)
                 .set({
 
                     'first_ps': [`//p[position() < 3 and parent::div and ./b]`] //index starting from 1 (Xpath..)
@@ -384,6 +394,7 @@ function scrapeWiki(phrase) {
                     resolve(finalResult);
 
                 } else if (result.status === 1) {
+                    winston.log(`scrapeWiki:: Going for option b`);
                     b(phrase)
                         .then((result) => {
                             finalResult.status = 1;
