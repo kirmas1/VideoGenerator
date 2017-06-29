@@ -1,18 +1,23 @@
-<div layout="row">
-    <div flex="10"></div>
-    <div flex="60" layout="column" layout-align="space-between" layout-margin>
+<div flex layout="row">
+    <div flex="5"></div>
+    <div flex="70" layout="column" layout-align="space-between" layout-margin>
         <div layout="column" style="background-color:#ffffff" class="md-whiteframe-8dp" layout-padding>
             <h3 flex="10">Statistics</h3>
-            <div flex="90" layout="row" layout-align="center">
-                <div id="chart_div"></div>
-                <div id="curve_chart"></div>
+            <div flex="90">
+                <div layout="row" layout-align="center center" flex id="curve_chart"></div>
             </div>
         </div>
-        <div style="background-color:#ffffff" flex class="md-whiteframe-8dp" layout-padding>
+        <div layout="column" style="background-color:#ffffff" class="md-whiteframe-8dp" layout-padding>
+            <h3 flex="10">Statistics</h3>
+            <div flex="90">
+                <div flex layout="row" layout-align="center center" id="chart_div"></div>
+            </div>
+        </div>
+        <div style="background-color:#ffffff" class="md-whiteframe-8dp" layout-padding>
             <h3>Usage </h3>
             <p>You have used 75% of your package this month. You can get more from your resources. <a>Learn More</a></p>
         </div>
-        <div style="background-color:#ffffff" flex class="md-whiteframe-8dp" layout-padding>
+        <div style="background-color:#ffffff" class="md-whiteframe-8dp" layout-padding>
             <h3>Create batch video request </h3>
             <div layout="row" layout-align="space-around center" layout-margin>
                 <div layout="column">
@@ -51,5 +56,5 @@
         </div>
 
     </div>
-    <div flex="10"></div>
+    <div flex="5"></div>
 </div>

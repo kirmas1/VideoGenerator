@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>sunsa</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.4/angular-material.min.css">
     <link href="css/styles.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
@@ -17,7 +17,7 @@
     <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
 
-    <script src="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.4/angular-material.min.js"></script>
     <script type="text/javascript" src="javascripts/angular-ui-router.js"></script>
     <script type="text/javascript" src="javascripts/app.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/lodash/4.17.4/lodash.min.js"></script>
@@ -28,7 +28,6 @@
             outline: none;
             border: 0;
         }
-
     </style>
 </head>
 
@@ -41,7 +40,7 @@
                     <md-button aria-label="Open menu with custom trigger" class="md-icon-button" ng-click="closeSideNav()">
                         <i class="material-icons">menu</i>
                     </md-button>
-                    <h2 md-truncate flex><i>sunsa.pro</i></h2>
+                    <h2><i>sunsa.pro</i></h2>
                 </div>
             </md-toolbar>
             <md-list>
@@ -89,17 +88,20 @@
                     <md-tooltip>Menu</md-tooltip>
                 </md-button>
 
-                <div id="icon" flex ng-click="goToHome()">
-                    <h2 md-truncate flex><i>sunsa.pro</i></h2>
-                    
+                <div layout="row">
+                    <h2 id="icon" ng-click="goToHome()"><i>sunsa.pro</i></h2>
                 </div>
-
-                <md-button aria-label="Open menu with custom trigger" class="md-icon-button" ng-ng-click="test()">
+                
+                <div style="margin-left:15px" flex layout="row" layout-align="start end">
+                    <small><i>v 0.4.1</i></small>
+                </div>
+                
+                <md-button aria-label="Notifications" class="md-icon-button" ng-ng-click="test()">
                     <i class="material-icons">notifications</i>
                     <md-tooltip>Notifications</md-tooltip>
                 </md-button>
 
-                <md-button aria-label="Open menu with custom trigger" class="md-icon-button" ng-mouseenter="$mdMenu.open()">
+                <md-button aria-label="Account" class="md-icon-button">
                     <i class="material-icons">account_circle</i>
                     <md-tooltip>Account</md-tooltip>
                 </md-button>
@@ -110,7 +112,7 @@
         <md-content layout="column" flex ng-controller="mainNavCtrl">
 
             <!------------------- Tabs Nav Bar ---------------------->
-            <div layout="row" layout-align="center" ng-show="showTabNav">
+            <div layout="row" layout-align="center center" ng-show="showTabNav" layout-margin>
                 <md-nav-bar md-selected-nav-item="currentNavItem" nav-bar-aria-label="navigation links">
                     <div layout="row" layout-align="center">
                         <md-nav-item md-nav-click="_goto('home')" name="Home">
@@ -128,8 +130,8 @@
             <md-divider></md-divider>
 
             <!------------- Main Content --------------->
-            <div layout="column" flex="90" ui-view class="ext-content slide">
-            </div>
+            <md-content layout="column" flex="90" ui-view class="ext-content slide">
+            </md-content>
         </md-content>
     </div>
     <!--    <div flex="15" ui-view="videosHistory" layout="row">Video History Goes here</div>-->
