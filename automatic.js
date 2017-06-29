@@ -1,6 +1,6 @@
 var fs = require('fs');
 var shortid = require('shortid');
-var db = require('./cars-db');
+var carsDB = require('./cars-db');
 var Car = require('./car');
 var ffmpeg = require('./ffmpeg');
 var util = require('util');
@@ -54,7 +54,10 @@ function generate(video) {
                  ****************************************/
                 if (topic.id === 0) {
                     video.metadata.origin = 1;
-                    return customCarScenario(topic);
+                    video.metadata.determinedTopic = video.metadata.phrase;
+                    
+                    return customCarScenario(topic, video, timeLogger_generate);
+
                 } else if (topic.id === 1 || topic.id === 2 || topic.id === 3) {
 
                     /******************************************************
@@ -122,8 +125,6 @@ function generate(video) {
 
                         winston.info(`automatic::generate:: topic.id ${topic.id}`);
 
-                        //                        scraper
-                        //                            .getSentences(video.metadata.phrase, configuration.VIDEO.SENTENCE_COUNT)
                         scraper
                             .getSentences3(video.metadata.url, video.metadata.determinedTopic, configuration.VIDEO.SENTENCE_COUNT)
 
@@ -164,7 +165,61 @@ function generate(video) {
             .then((res) => resolve(res));
     })
 }
+/*
+topic includes {
+    model_make:
+    model_name:
+    model_year:
+    id
+}
 
+video is videoObject.
+*/
+function customCarScenario(topic, video, timeLogger_generate) {
+
+    return new Promise((resolve, reject) => {
+
+        Promise.resolve()
+            .then(res => {
+                winston.info(`automatic::customCarScenario::calling create car`);
+                return createCar(topic);
+            })
+            .then((car) => {
+                winston.info(`automatic::customCarScenario::calling getCarImages`);
+                return getCarImages(car, video.info.tempFolder);
+
+            })
+            .then((car) => {
+                winston.info(`automatic::customCarScenario::calling generateTTsAndSetCaptions`);
+                return generateTTsAndSetCaptions(car, video.info.tempFolder);
+
+            })
+            .then((car) => {
+                winston.info(`automatic::customCarScenario::calling createDataObjectFromCar`);
+            
+                return completeVideoObjectFromCar(car, video); //for ffmpeg
+
+            })
+            .then((video) => {
+                timeLogger_generate.done("automatic.generate");
+
+                return ffmpeg.createCustom(video);
+
+            })
+            .then((video) => {
+
+                db.Video.update(video);
+                resolve(video);
+            })
+            .catch((err) => {
+                winston.info(err);
+                reject(err);
+            });
+    });
+
+}
+
+/*
 function customCarScenario(topic) {
 
     return new Promise((resolve, reject) => {
@@ -201,16 +256,18 @@ function customCarScenario(topic) {
     });
 
 }
+*/
+
 /*
 Get car images from S3
 */
 function getCarImages(car, workshop) {
     winston.info('automatic:: getCarImages:: car is: ' + util.inspect(car));
     return new Promise((resolve, reject) => {
-        db.getCarPictures(car, {
+        carsDB.getCarPictures(car, {
                 total_count: 5,
-                interior_count: 3,
-                exterior_count: 2,
+                interior_count: 2,
+                exterior_count: 3,
                 engine_count: 0,
                 path: workshop
             })
@@ -334,7 +391,7 @@ function createInfo_General(files, sentences, video) {
                 duration: 2,
                 effect: {
                     type: 1,
-                    uncover: itr+1
+                    uncover: itr + 1
                 }
             })
         }
@@ -368,11 +425,202 @@ function createInfo_General(files, sentences, video) {
     });
 }
 
+
+function completeVideoObjectFromCar(car, video) {
+
+    winston.info('automatic:: completeVideoObjectFromCar:: car is: ' + util.inspect(car));
+
+    winston.info('automatic:: completeVideoObjectFromCar:: video is: ' + util.inspect(video));
+
+    var slide0 = {
+        type: 0,
+        fileName: '0.jpg',
+        caption: {
+            text: `${car.model_year} ${car.model_make} ${car.model_name}`,
+            font: 'Georgia',
+            font_color: 'white',
+            fontsize: 100,
+            bold: false,
+            italic: false,
+            effect: 2,
+            //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
+            startTime: 0,
+            duration: 3,
+            x: 'center',
+            y: '(h-text_h)/3'
+        },
+        tts: {
+            enable: false
+        },
+        zoom: {
+            enabled: false,
+            style: 0
+        },
+        duration: 3
+    };
+
+    var slide1 = {
+        type: 0,
+        fileName: '1.jpg',
+        caption: {
+            text: car.allTexts[0].text,
+            font: 'OpenSans',
+            fontsize: 72,
+            bold: true,
+            italic: false,
+            effect: 3,
+            //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
+            startTime: 0,
+            duration: 4 //Doesn't matter when tts is true! Or when effect=1 (Sliding from left)
+        },
+        tts: {
+            enable: true,
+            file_path: `${video.info.tempFolder}/0.mp3`,
+            file_len: car.allTexts[0].tts_file_len,
+            startTime: 1
+        },
+
+        zoom: {
+            enabled: true,
+            style: 2
+        },
+        duration: Math.floor(car.allTexts[0].tts_file_len + 4)
+    };
+
+    var slide2 = {
+        type: 0,
+        fileName: '2.jpg',
+        caption: {
+            text: car.allTexts[1].text,
+            font: 'OpenSans',
+            fontsize: 72,
+            bold: true,
+            italic: false,
+            effect: 3,
+            //effect: Math.floor(Math.random() * (3)), //random of 0,1,2
+            startTime: 0,
+            duration: 4
+        },
+        tts: {
+            enable: true,
+            file_path: `${video.info.tempFolder}/1.mp3`,
+            file_len: car.allTexts[1].tts_file_len,
+            startTime: 2
+        },
+        zoom: {
+            enabled: true,
+            style: 1
+        },
+        duration: Math.floor(car.allTexts[1].tts_file_len + 6)
+    };
+
+    var slide3 = {
+        type: 0,
+        fileName: '3.jpg',
+        caption: {
+            text: car.allTexts[2].text,
+            font: 'OpenSans',
+            fontsize: 72,
+            bold: true,
+            italic: false,
+            effect: 3,
+            startTime: 1,
+            duration: 7
+        },
+        tts: {
+            enable: true,
+            file_path: `${video.info.tempFolder}/2.mp3`,
+            file_len: car.allTexts[2].tts_file_len,
+            startTime: 2
+        },
+        zoom: {
+            enabled: true,
+            style: 0
+        },
+        duration: Math.floor(car.allTexts[2].tts_file_len + 4)
+    };
+
+    var slide4 = {
+        type: 0,
+        fileName: '4.jpg',
+        caption: {
+            text: car.allTexts[3].text,
+            font: 'OpenSans',
+            fontsize: 72,
+            bold: true,
+            italic: false,
+            effect: 3,
+            startTime: 1,
+            duration: 7
+        },
+        tts: {
+            enable: true,
+            file_path: `${video.info.tempFolder}/3.mp3`,
+            file_len: car.allTexts[2].tts_file_len,
+            startTime: 2
+        },
+        zoom: {
+            enabled: true,
+            style: 2
+        },
+        duration: Math.floor(car.allTexts[2].tts_file_len + 4)
+    };
+
+    var transition0 = {
+        type: 1,
+        duration: 2,
+        effect: {
+            type: 1,
+            uncover: 1
+        }
+    };
+    var transition1 = {
+        type: 1,
+        duration: 2,
+        effect: {
+            type: 1,
+            uncover: 2
+            //type: Math.floor(Math.random() * (2)), //random of 0,1
+            //uncover: Math.floor(Math.random() * (3)) //random of 0,1,2
+        }
+    };
+    var transition2 = {
+        type: 1,
+        duration: 1,
+        effect: {
+            type: 0, //random of 0,1
+            uncover: null
+            //uncover: Math.floor(Math.random() * (3)) //random of 0,1,2
+        }
+    };
+    var transition3 = {
+        type: 1,
+        duration: 2,
+        effect: {
+            type:1,
+            uncover:0
+            //type: Math.floor(Math.random() * (2)), //random of 0,1
+            //uncover: Math.floor(Math.random() * (3)) //random of 0,1,2
+        }
+    };
+    
+    return new Promise((res, rej) => {
+
+        video.info.slidesInfo = [slide0, transition0, slide1, transition1, slide2, transition2, slide3, transition3, slide4];
+        
+        res(video);
+
+    });
+}
+
 /*
+Deprecated!!
+
 This function should be called when all the images and text and ready. So it can create details object for ffmpeg.createCustom
 */
 function createDataObjectFromCar(car, workshop) {
     winston.info('automatic:: createDataObjectFromCar:: car is: ' + util.inspect(car));
+
     return new Promise((res, rej) => {
         var slide0 = {
             type: 0,
@@ -417,7 +665,7 @@ function createDataObjectFromCar(car, workshop) {
             },
             tts: {
                 enable: true,
-                file_path: `${workshop}/0.mp3`,
+                file_path: `${video.info.tempFolder}/0.mp3`,
                 file_len: car.allTexts[0].tts_file_len,
                 startTime: 1
             },
@@ -445,7 +693,7 @@ function createDataObjectFromCar(car, workshop) {
             },
             tts: {
                 enable: true,
-                file_path: `${workshop}/1.mp3`,
+                file_path: `${video.info.tempFolder}/1.mp3`,
                 file_len: car.allTexts[1].tts_file_len,
                 startTime: 2
             },
@@ -471,7 +719,7 @@ function createDataObjectFromCar(car, workshop) {
             },
             tts: {
                 enable: true,
-                file_path: `${workshop}/2.mp3`,
+                file_path: `${video.info.tempFolder}/2.mp3`,
                 file_len: car.allTexts[2].tts_file_len,
                 startTime: 2
             },
@@ -497,7 +745,7 @@ function createDataObjectFromCar(car, workshop) {
             },
             tts: {
                 enable: true,
-                file_path: `${workshop}/3.mp3`,
+                file_path: `${video.info.tempFolder}/3.mp3`,
                 file_len: car.allTexts[2].tts_file_len,
                 startTime: 2
             },
