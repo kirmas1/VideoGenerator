@@ -35,7 +35,7 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
             });
 
         // Use $urlRouterProvider to configure any redirects (when) and invalid urls (otherwise).
-        $urlRouterProvider.otherwise('/automatic');
+        $urlRouterProvider.otherwise('/dashboard');
 
         $stateProvider
             .state('manual', {
@@ -76,6 +76,61 @@ var myApp = angular.module('videoAutomation', ['ngMaterial', 'ui.router', 'ngAni
   }]);
 
 myApp.controller('dashboardManagerCtrl', ['$scope', '$rootScope', '$state', '$mdSidenav', function ($scope, $rootScope, $state, $mdSidenav) {
+
+    // Load the Visualization API and the corechart package.
+    google.charts.load('current', {
+        'packages': ['corechart', 'gauge']
+    });
+
+    // Set a callback to run when the Google Visualization API is loaded.
+    google.charts.setOnLoadCallback(drawChart);
+
+    // Callback that creates and populates a data table,
+    // instantiates the pie chart, passes in the data and
+    // draws it.
+    function drawChart() {
+
+        // Create the data table.
+        var PieChartData = new google.visualization.DataTable();
+        PieChartData.addColumn('string', 'Source');
+        PieChartData.addColumn('number', 'Videos');
+        PieChartData.addRows([
+          ['From URL', 378],
+          ['Phrase', 144],
+          ['Studio', 52]
+        ]);
+
+        // Set chart options
+        var PieChartOptions = {
+            'title': 'Videos Source'
+                //            'width': 400,
+                //            'height': 300
+        };
+
+
+        var LineChartData = google.visualization.arrayToDataTable([
+          ['Month', 'URL', 'Phrase', 'Studio'],
+            ['March', 1000, 400, 32],
+          ['April', 1170, 460, 38],
+          ['May', 660, 1120, 55],
+          ['June', 1030, 540, 53]
+        ]);
+
+        var LineChartOptions = {
+            title: 'Video Production',
+            curveType: 'function',
+            legend: {
+                position: 'bottom'
+            }
+        };
+
+        var LineChart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+        LineChart.draw(LineChartData, LineChartOptions);
+
+        // Instantiate and draw our chart, passing in some options.
+        var PieChart = new google.visualization.PieChart(document.getElementById('chart_div'));
+        PieChart.draw(PieChartData, PieChartOptions);
+    }
 
 }]);
 
@@ -122,7 +177,7 @@ myApp.controller('mainNavCtrl', ['$scope', '$state', 'videoService', function ($
 
     $scope.showTabNav = true;
 
-    $scope.currentNavItem = 'Automatic';
+    $scope.currentNavItem = 'Home';
 
     $scope.$on('videosHistoryCtrl.takeToStudio', function (event, args) {
         $scope._goto(args.state);

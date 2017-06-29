@@ -1,1 +1,55 @@
-<div>Dashboard</div>
+<div layout="row">
+    <div flex="10"></div>
+    <div flex="60" layout="column" layout-align="space-between" layout-margin>
+        <div layout="column" style="background-color:#ffffff" class="md-whiteframe-8dp" layout-padding>
+            <h3 flex="10">Statistics</h3>
+            <div flex="90" layout="row" layout-align="center">
+                <div id="chart_div"></div>
+                <div id="curve_chart"></div>
+            </div>
+        </div>
+        <div style="background-color:#ffffff" flex class="md-whiteframe-8dp" layout-padding>
+            <h3>Usage </h3>
+            <p>You have used 75% of your package this month. You can get more from your resources. <a>Learn More</a></p>
+        </div>
+        <div style="background-color:#ffffff" flex class="md-whiteframe-8dp" layout-padding>
+            <h3>Create batch video request </h3>
+            <div layout="row" layout-align="space-around center" layout-margin>
+                <div layout="column">
+                    <md-button ng-click="null" class="md-icon-button md-primary" aria-label="Reset list">
+                        <i class="material-icons">web</i>
+                    </md-button>
+                    <p>Scrape my site</p>
+                </div>
+                <div layout="column">
+                    <md-button ng-click="null" class="md-icon-button md-warn" aria-label="Reset list">
+                        <i class="material-icons">schedule</i>
+                    </md-button>
+                    <p>Schedule</p>
+                </div>
+                <div layout="column">
+                    <md-button ng-click="null" class="md-icon-button md-accent" aria-label="Reset list">
+                        <i class="material-icons">video_library</i>
+                    </md-button>
+                    <p>Choose from library</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div flex="20" layout="column" layout-margin>
+        <div>
+            <h3>Helpful Tips</h3>
+            <p>Lets out here some tips</p>
+            <p>and some more</p>
+        </div>
+        <hr>
+        <div>
+            <h3>Hot Trends</h3>
+            <p>Lets out here hot trends</p>
+            <p>and some more</p>
+        </div>
+
+    </div>
+    <div flex="10"></div>
+</div>
