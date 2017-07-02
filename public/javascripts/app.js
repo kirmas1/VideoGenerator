@@ -382,8 +382,6 @@ myApp.controller('automaticCtrl', ['$scope', '$q', 'videoService', function ($sc
 
     }
 
-    //////////////////////////
-    ////////////////////////
 }]);
 
 

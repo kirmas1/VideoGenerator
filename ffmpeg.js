@@ -106,7 +106,7 @@ var me = function () {
                         var y = '(in_h-out_h)/2';
                         if (resp.length > 0) {
                             y = (resp[0].faceRectangle.top - 20) < 0 ? y : resp[0].faceRectangle.top - 20;
-                            
+
                         }
 
                         return Promise.resolve(y);
@@ -809,15 +809,21 @@ var me = function () {
     var captureLastFrame2 = function (path_to_video, path_to_output) {
 
         return new Promise((resolve, reject) => {
+
             winston.info(`captureLastFrame2::ffprobe = ${ffprobe} path_to_video = ${path_to_video} path_to_output = ${path_to_output}`);
+
             execFile(ffprobe, ['-show_streams', path_to_video], (error, stdout, stderr) => {
+
                 winston.info(`captureLastFrame2:: stdout.split(/\r?\n/) = ${stdout.split(/\r?\n/)}`);
+
                 winston.info(`captureLastFrame2:: stdout.split(/\r?\n/).find... = ${stdout.split(/\r?\n/).find((ele) => {
                     return ele.startsWith('nb_frames')
                 })}`);
+
                 var nb_frames = stdout.split(/\r?\n/).find((ele) => {
                     return ele.startsWith('nb_frames')
                 }).split('=')[1];
+
                 execFile('ffmpeg', ['-i', path_to_video, '-vf', `select='eq(n\,${nb_frames -1})'`, '-vframes', 1, path_to_output], (error, stdout, stderr) => {
                     winston.info('captureLastFrame2:: done second execFile');
                     if (error) {
@@ -1373,35 +1379,45 @@ options: font_color, font_file, text_file
 
     var overlayAudioToVideo = function (video, audio, options) {
 
-        if (options.ttsExist) {
+        return new Promise((resolve, reject) => {
 
-            return new Promise((resolve, reject) => {
-                execFile(ffmpeg, ['-i', audio, '-i', video, '-filter_complex', '[0:a][1:a]amerge,pan=stereo|c0=0.2*c0+0.5*c2:c1=0.2*c1+0.5*c2[out]', '-map', '1:v', '-map', '[out]', '-c:v', 'copy', options.output], (err, stdout, stdin) => {
-                    if (err) {
-                        winston.error('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
-                        reject(err);
-                    }
-                    ffmpegLogger.info(stdout);
-                }).on('exit', (code, signal) => {
-                    resolve(0);
-                });
-            });
+            //First lets get the video Duration
 
-        } else {
+            execFile(ffprobe, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', video], (err, stdout, stdin) => {
 
-            return new Promise((resolve, reject) => {
-                execFile(ffmpeg, ['-i', audio, '-i', video, '-c:v', 'copy', '-shortest', options.output], (err, stdout, stdin) => {
-                    if (err) {
-                        winston.error('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
-                        reject(err);
-                    }
-                    ffmpegLogger.info(stdout);
-                }).on('exit', (code, signal) => {
-                    resolve(0);
-                });
-            });
-        }
+                var videoDuration = stdout;
 
+                if (options.ttsExist) {
+
+                    // return new Promise((resolve, reject) => {
+                    execFile(ffmpeg, ['-i', audio, '-i', video, '-filter_complex', '[0:a][1:a]amerge,pan=stereo|c0=0.2*c0+0.5*c2:c1=0.2*c1+0.5*c2[out]', '-map', '1:v', '-map', '[out]', '-c:v', 'copy', '-af', `afade=t=out:st=5:d=${videoDuration -3}`, options.output], (err, stdout, stdin) => {
+                        if (err) {
+                            winston.error('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
+                            reject(err);
+                        }
+                        ffmpegLogger.info(stdout);
+                    }).on('exit', (code, signal) => {
+                        resolve(0);
+                    });
+                    // });
+
+                } else {
+
+                    //return new Promise((resolve, reject) => {
+                    execFile(ffmpeg, ['-i', audio, '-i', video, '-c:v', 'copy', '-shortest', '-af', `afade=t=out:st=5:d=${videoDuration -3}`, options.output], (err, stdout, stdin) => {
+                        if (err) {
+                            winston.error('overlayAudioToVideo::overlayAudioToVideo error: ' + err);
+                            reject(err);
+                        }
+                        ffmpegLogger.info(stdout);
+                    }).on('exit', (code, signal) => {
+                        resolve(0);
+                    });
+                    // });
+                }
+
+            })
+        });
     }
 
     var overlaySilentToVideo = function (input, output) {
