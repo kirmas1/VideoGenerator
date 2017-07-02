@@ -84,7 +84,14 @@ function generate(video) {
                                 sentences = result.data;
                                 video.metadata.determinedTopic = result.determinedTopic;
                                 winston.info(`automatic::generate::after getSentences sentences are: ${util.inspect(sentences)}`);
-
+                                
+                                if (result.status === 2) {
+                                    video.metadata.state = 2;
+                                    video.metadata.inProgress = false;
+                                    video.metadata.err_msg.push('No Sentences Found');
+                                    db.Video.update(video);
+                                    resolve(video);
+                                } else 
                                 return scraper.scrapeImages(video.metadata.determinedTopic, sentences.length, video.info.tempFolder, sentences.map((obj, index) => index));
                             })
                             .then((files) => {
@@ -100,7 +107,7 @@ function generate(video) {
                             .then((video) => {
 
                                 db.Video.update(video);
-                                resolve(video)
+                                resolve(video);
                             })
                             .catch((err) => {
                                 winston.info(err);

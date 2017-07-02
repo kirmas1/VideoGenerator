@@ -57,6 +57,7 @@ module.exports = {
                     ffmpegProcessDuration: null,
                     link: null,
                     state: -1,
+                    err_msg: [],
                     inProgress: false
                 },
                 info: {

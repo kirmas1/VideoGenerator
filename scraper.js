@@ -8,6 +8,7 @@ var winston = require('winston');
 var config = require('./configuration');
 
 /*
+Deprecated. use getSentences2 instead.
 summerize the first p of wikipedia and returns array of the n most important sentences
 */
 function getSentences(topic, n) {
@@ -229,7 +230,7 @@ function getSentences3(url, topic, n) {
 
             })
             .then((resp) => {
-
+                winston.info(`scraper::getSentences3:: scrapeWiki resp is: ${util.inspect(resp)}`);
                 result.determinedTopic = resp.determinedTopic;
                 result.status = resp.status;
 
@@ -291,11 +292,17 @@ Return a Promise of object as following:
 }
 
 Basically go for wiki main page and search the phrase then ..
+
+// 2 (trump) = .//*[@id='mw-content-text']/div/ul[1]/li[1]/a
+// 0    = .//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a
+// 1    = .//*[@id='mw-content-text']/div/ul/li[1]/div[1]/a
+
 */
 function scrapeWiki(phrase) {
 
     var suggest = null;
-    
+    winston.info(`scraper::scraperWiki:: topic = ${phrase}`);
+
     function a(phrase) {
 
         return new Promise((resolve, reject) => {
@@ -304,7 +311,7 @@ function scrapeWiki(phrase) {
                 status: null, // 0 - ok. 1 - try suggestion. 2 - failed and there is no suggestion
                 data: null
             };
-            
+
             osmosis
                 .get('https://en.wikipedia.org/wiki/Main_Page')
                 .submit(".//*[@id='searchButton']", {
@@ -313,6 +320,7 @@ function scrapeWiki(phrase) {
                 .set({
                     'followLinkInCaseOfMissMatch': [".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a"],
                     'followLinkInCaseOfMissMatch1': [".//*[@id='mw-content-text']/div/ul/li[1]/div[1]/a"],
+                    'followLinkInCaseOfMissMatch2': [".//*[@id='mw-content-text']/div/ul[1]/li[1]/a"],
                     'first_ps': [`//p[position() < 3 and parent::div and ./b]`] //index starting from 1 (Xpath..)
                 })
                 .then(function (context, data, next, done) {
@@ -322,15 +330,21 @@ function scrapeWiki(phrase) {
                         else if (data.followLinkInCaseOfMissMatch.length === 0) {
                             result.status = 1;
                             suggest = ".//*[@id='mw-content-text']/div/ul/li[1]/div[1]/a";
-                            
+
                         } else {
                             result.status = 1;
                             suggest = ".//*[@id='mw-content-text']/div[2]/ul/li[1]/div[1]/a";
                         }
-                            
+
                     } else {
-                        result.status = 0;
-                        result.data = data.first_ps[0];
+                        if (data.first_ps[0].indexOf('commonly refers to:') !== -1) {
+                            result.status = 1;
+                            suggest = ".//*[@id='mw-content-text']/div/ul[1]/li[1]/a";
+                        } else {
+                            result.status = 0;
+                            result.data = data.first_ps[0];
+                        }
+                        
                     }
                     done();
                 })
@@ -341,8 +355,8 @@ function scrapeWiki(phrase) {
     }
 
     function b(phrase) {
-        
-        winston.info(`b option::suggest = ${suggest}`)
+
+        winston.info(`b option::suggest = ${suggest}`);
         return new Promise((resolve, reject) => {
             var result = {
                 data: null,
